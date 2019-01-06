@@ -56,6 +56,8 @@ create_index(const char* filename, char delim, int num_threads) {
   // We read the values into a vector of vectors, then merge them afterwards
   std::vector<std::vector<size_t> > values(num_threads);
 
+  std::vector<std::vector<size_t> > quotes(num_threads);
+
   parallel_for(
       file_size,
       [&](int start, int end, int id) {
@@ -82,6 +84,11 @@ create_index(const char* filename, char delim, int num_threads) {
             // Rcpp::Rcout << id << '\n';
             values[id].push_back(cur_loc + 1);
           }
+
+          else if (*i == '"') {
+            quotes[id].push_back(cur_loc);
+          }
+
           ++cur_loc;
         }
       },
@@ -104,18 +111,40 @@ create_index(const char* filename, char delim, int num_threads) {
 
   out->push_back(0);
 
+  bool in_quote = false;
+
   // Rcpp::Rcerr << "combining vectors\n";
-  for (auto& v : values) {
-    append<size_t>(std::move(v), *out);
+  for (auto id = 0; id < values.size(); ++id) {
+    auto idx = &values[id];
+    auto quote = &quotes[id];
+
+    auto i = idx->cbegin();
+    auto q = quote->cbegin();
+
+    while (q != quote->cend()) {
+      while (i != quote->cend() && *i <= *q) {
+        if (!in_quote) {
+          out->emplace_back(*i);
+        }
+        ++i;
+      }
+      ++q;
+      in_quote = !in_quote;
+    }
+
+    while (i != idx->cend()) {
+      out->emplace_back(*i);
+      ++i;
+    }
   }
 
-  // std::ofstream log(
-  //"test2.idx",
-  // std::fstream::out | std::fstream::binary | std::fstream::trunc);
-  // for (auto& v : *out) {
-  // log << v << '\n';
-  //}
-  // log.close();
+  std::ofstream log(
+      "test2.idx",
+      std::fstream::out | std::fstream::binary | std::fstream::trunc);
+  for (auto& v : *out) {
+    log << v << '\n';
+  }
+  log.close();
 
   return std::make_tuple(out, columns, mmap);
 }
