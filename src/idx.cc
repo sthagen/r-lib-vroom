@@ -1,32 +1,5 @@
 #include "idx.h"
 
-#include "parallel.h"
-
-#include <fstream>
-
-size_t guess_size(size_t records, size_t bytes, size_t file_size) {
-  double percent_complete = (double)(bytes) / file_size;
-  size_t total_records = records / percent_complete * 1.1;
-  return total_records;
-}
-
-// From https://stackoverflow.com/a/53710597/2055486
-// To move an object use `std::move()` when calling `append()`
-// append<type>(std::move(source),destination)
-//
-// std::vector<T>&& src - src MUST be an rvalue reference
-// std::vector<T> src - src MUST NOT, but MAY be an rvalue reference
-template <typename T>
-inline void append(std::vector<T> source, std::vector<T>& destination) {
-  if (destination.empty())
-    destination = std::move(source);
-  else
-    destination.insert(
-        std::end(destination),
-        std::make_move_iterator(std::begin(source)),
-        std::make_move_iterator(std::end(source)));
-}
-
 std::tuple<
     std::shared_ptr<std::vector<size_t> >,
     size_t,
@@ -37,115 +10,39 @@ create_index(const char* filename, char delim, char quote, int num_threads) {
   std::error_code error;
   mio::shared_mmap_source mmap = mio::make_mmap_source(filename, error);
 
-  // Rcpp::Rcerr << mmap.get_shared_ptr().use_count() << '\n';
-
   if (error) {
     throw Rcpp::exception(error.message().c_str(), false);
   }
 
-  // From https://stackoverflow.com/a/17925143/2055486
+  std::vector<size_t> values;
 
-  auto file_size = mmap.cend() - mmap.cbegin();
-
-  // This should be enough to ensure the first line fits in one thread, I
-  // hope...
-  if (file_size < 32768) {
-    num_threads = 1;
-  }
-
-  // We read the values into a vector of vectors, then merge them afterwards
-  std::vector<std::vector<size_t> > values(num_threads);
-
-  std::vector<std::vector<size_t> > quotes(num_threads);
-
-  parallel_for(
-      file_size,
-      [&](int start, int end, int id) {
-        // Rcpp::Rcerr << start << '\t' << end - start << '\n';
-        std::error_code error;
-        auto thread_mmap =
-            mio::make_mmap_source(filename, start, end - start, error);
-        if (error) {
-          throw Rcpp::exception(error.message().c_str(), false);
-        }
-
-        size_t cur_loc = start;
-        values[id].reserve(128);
-
-        // The actual parsing is here
-        for (auto i = thread_mmap.cbegin(); i != thread_mmap.cend(); ++i) {
-          if (*i == '\n') {
-            if (id == 0 && columns == 0) {
-              columns = values[id].size() + 1;
-            }
-            values[id].push_back(cur_loc + 1);
-          }
-
-          else if (*i == delim) {
-            // Rcpp::Rcout << id << '\n';
-            values[id].push_back(cur_loc + 1);
-          }
-
-          else if (*i == quote) {
-            quotes[id].push_back(cur_loc);
-          }
-
-          ++cur_loc;
-        }
-      },
-      num_threads,
-      true);
-
-  // Rcpp::Rcerr << "Calculating total size\n";
-  auto total_size = std::accumulate(
-      values.begin(),
-      values.end(),
-      0,
-      [](size_t sum, const std::vector<size_t>& v) {
-        sum += v.size();
-        return sum;
-      });
-
-  auto out = std::make_shared<std::vector<size_t> >();
-
-  out->reserve(total_size + 1);
-
-  out->push_back(0);
+  values.push_back(0);
 
   bool in_quote = false;
 
-  // Rcpp::Rcerr << "combining vectors\n";
-  for (size_t id = 0; id < values.size(); ++id) {
-    auto idx = &values[id];
-    auto quote = &quotes[id];
+  size_t cur_loc = 0;
+  values.reserve(128);
 
-    auto i = idx->cbegin();
-    auto q = quote->cbegin();
-
-    while (q != quote->cend()) {
-      while (i != idx->cend() && *i <= *q) {
-        if (!in_quote) {
-          out->emplace_back(*i);
-        }
-        ++i;
+  // The actual parsing is here
+  for (auto i = mmap.cbegin(); i != mmap.cend(); ++i) {
+    if (*i == '\n' && !in_quote) {
+      if (columns == 0) {
+        columns = values.size();
       }
-      ++q;
+      values.push_back(cur_loc + 1);
+    }
+
+    else if (*i == delim && !in_quote) {
+      values.push_back(cur_loc + 1);
+    }
+
+    else if (*i == quote) {
       in_quote = !in_quote;
     }
 
-    while (i != idx->cend()) {
-      out->emplace_back(*i);
-      ++i;
-    }
+    ++cur_loc;
   }
 
-  // std::ofstream log(
-  //"test2.idx",
-  // std::fstream::out | std::fstream::binary | std::fstream::trunc);
-  // for (auto& v : *out) {
-  // log << v << '\n';
-  //}
-  // log.close();
-
-  return std::make_tuple(out, columns, mmap);
+  return std::make_tuple(
+      std::make_shared<std::vector<size_t> >(values), columns, mmap);
 }
