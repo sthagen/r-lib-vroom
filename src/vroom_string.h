@@ -27,7 +27,7 @@ public:
   static SEXP Make(vroom_vec_info* info) {
 
     SEXP out = PROTECT(R_MakeExternalPtr(info, R_NilValue, R_NilValue));
-    R_RegisterCFinalizerEx(out, vroom_vec::Finalize, TRUE);
+    R_RegisterCFinalizerEx(out, vroom_vec::Finalize, FALSE);
 
     // make a new altrep object of class `vroom_string::class_t`
     SEXP res = R_new_altrep(class_t, out, R_NilValue);
