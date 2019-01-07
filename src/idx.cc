@@ -25,26 +25,30 @@ create_index(const char* filename, char delim, char quote, int num_threads) {
   char query[8] = {delim, '\n', quote};
 
   auto start = mmap.cbegin();
+  size_t last = 0;
+  size_t file_size = mmap.cend() - mmap.cbegin();
 
   // The actual parsing is here
-  auto i = strpbrk(mmap.cbegin(), query);
-  while (i != nullptr) {
-    if (*i == '\n' && !in_quote) {
+  auto i = strcspn(mmap.cbegin(), query) + last;
+  while (i < file_size) {
+    auto c = mmap[i];
+    if (c == '\n' && !in_quote) {
       if (columns == 0) {
         columns = values.size();
       }
-      values.push_back(i - start + 1);
+      values.push_back(i + 1);
     }
 
-    else if (*i == delim && !in_quote) {
-      values.push_back(i - start + 1);
+    else if (c == delim && !in_quote) {
+      values.push_back(i + 1);
     }
 
-    else if (*i == quote) {
+    else if (c == quote) {
       in_quote = !in_quote;
     }
 
-    i = strpbrk(i + 1, query);
+    last = i;
+    i = strcspn(start + i + 1, query) + last + 1;
   }
 
   return std::make_tuple(
