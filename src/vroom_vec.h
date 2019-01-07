@@ -8,6 +8,7 @@ struct vroom_vec_info {
   size_t column;
   size_t num_columns;
   size_t skip;
+  const char quote;
   size_t num_threads;
   std::shared_ptr<Rcpp::CharacterVector> na;
 };
@@ -57,5 +58,32 @@ public:
       return nullptr;
 
     return STDVEC_DATAPTR(data2);
+  }
+
+  template <class Iterator>
+  static void trim_quotes(Iterator& begin, Iterator& end, char quote) {
+    if (begin != end && (*begin == quote)) {
+      ++begin;
+    }
+
+    // end starts one past the last character we want to look at and ends one
+    // character too far. So we decrement it first, then increment it afterwards
+    //
+    // Before:
+    //
+    // "foo","bar"
+    // ^----^----begin
+    //      |----end
+    //
+    // After:
+    // "foo","bar"
+    //  ^-^------begin
+    //    |------end
+
+    --end;
+    if (end >= begin && (*end == quote)) {
+      --end;
+    }
+    ++end;
   }
 };

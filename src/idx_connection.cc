@@ -32,15 +32,21 @@ std::tuple<
     size_t,
     mio::shared_mmap_source>
 create_index_connection(
-    SEXP in, const std::string& out_file, char delim, R_xlen_t chunk_size) {
+    SEXP in,
+    const std::string& out_file,
+    const char delim,
+    const char quote,
+    R_xlen_t chunk_size) {
   size_t columns = 0;
 
   std::vector<size_t> values;
+  std::vector<size_t> quotes;
+
   values.reserve(128);
 
   values.push_back(0);
 
-  std::ofstream out(
+  std::ofstream out_h(
       out_file.c_str(),
       std::fstream::out | std::fstream::binary | std::fstream::trunc);
 
@@ -58,19 +64,25 @@ create_index_connection(
           columns = values.size();
         }
         values.push_back(cur_loc + 1);
+      }
 
-      } else if (c == delim) {
+      else if (c == delim) {
         // Rcpp::Rcout << id << '\n';
         values.push_back(cur_loc + 1);
       }
+
+      else if (c == quote) {
+        quotes.push_back(cur_loc);
+      }
+
       ++cur_loc;
     }
-    out.write(buf.data(), sz);
+    out_h.write(buf.data(), sz);
 
     sz = R_ReadConnection(con, buf.data(), chunk_size);
   }
 
-  out.close();
+  out_h.close();
 
   std::error_code error;
   mio::shared_mmap_source mmap = mio::make_mmap_source(out_file, error);
@@ -78,8 +90,34 @@ create_index_connection(
     throw Rcpp::exception(error.message().c_str(), false);
   }
 
-  // Rcpp::Rcerr << mmap.get_shared_ptr().use_count() << '\n';
+  if (quotes.size() == 0) {
+    return std::make_tuple(
+        std::make_shared<std::vector<size_t> >(values), columns, mmap);
+  }
 
-  return std::make_tuple(
-      std::make_shared<std::vector<size_t> >(values), columns, mmap);
+  auto out = std::make_shared<std::vector<size_t> >();
+  out->reserve(values.size());
+
+  bool in_quote = false;
+
+  auto i = values.cbegin();
+  auto q = quotes.cbegin();
+
+  while (q != quotes.cend()) {
+    while (i != values.cend() && *i <= *q) {
+      if (!in_quote) {
+        out->emplace_back(*i);
+      }
+      ++i;
+    }
+    ++q;
+    in_quote = !in_quote;
+  }
+
+  while (i != values.cend()) {
+    out->emplace_back(*i);
+    ++i;
+  }
+
+  return std::make_tuple(out, columns, mmap);
 }

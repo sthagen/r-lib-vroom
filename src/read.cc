@@ -15,7 +15,8 @@ CharacterVector read_column_names(
     std::shared_ptr<std::vector<size_t> > idx,
     mio::shared_mmap_source mmap,
     size_t num_columns,
-    size_t skip) {
+    size_t skip,
+    const char quote) {
 
   CharacterVector nms(num_columns);
 
@@ -25,7 +26,13 @@ CharacterVector read_column_names(
     size_t cur_loc = (*idx)[i];
     size_t next_loc = (*idx)[i + 1] - 1;
     size_t len = next_loc - cur_loc;
-    nms[col] = Rf_mkCharLenCE(mmap.data() + cur_loc, len, CE_UTF8);
+
+    auto begin = mmap.data() + cur_loc;
+    auto end = begin + len;
+
+    vroom_vec::trim_quotes(begin, end, quote);
+
+    nms[col] = Rf_mkCharLenCE(begin, end - begin, CE_UTF8);
   }
 
   return nms;
@@ -35,6 +42,7 @@ CharacterVector read_column_names(
 SEXP vroom_(
     RObject file,
     const char delim,
+    const char quote,
     RObject col_names,
     size_t skip,
     CharacterVector na,
@@ -54,11 +62,11 @@ SEXP vroom_(
     tempfile = as<Rcpp::Function>(Rcpp::Environment::base_env()["tempfile"])();
     filename = CHAR(STRING_ELT(tempfile, 0));
     std::tie(vroom_idx, num_columns, mmap) =
-        create_index_connection(file, filename, delim, 1024 * 1024);
+        create_index_connection(file, filename, delim, quote, 1024 * 1024);
   } else {
     filename = CHAR(STRING_ELT(file, 0));
     std::tie(vroom_idx, num_columns, mmap) =
-        create_index(filename.c_str(), delim, num_threads);
+        create_index(filename.c_str(), delim, quote, num_threads);
   }
 
   List res(num_columns);
@@ -67,7 +75,8 @@ SEXP vroom_(
     res.attr("names") = col_names;
   } else if (
       col_names.sexp_type() == LGLSXP && as<LogicalVector>(col_names)[0]) {
-    res.attr("names") = read_column_names(vroom_idx, mmap, num_columns, skip);
+    res.attr("names") =
+        read_column_names(vroom_idx, mmap, num_columns, skip, quote);
     ++skip;
   }
 
@@ -105,6 +114,7 @@ SEXP vroom_(
                                    col,
                                    num_columns,
                                    skip,
+                                   quote,
                                    num_threads,
                                    std::make_shared<Rcpp::CharacterVector>(na)};
 

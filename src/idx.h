@@ -14,7 +14,11 @@ std::tuple<
     std::shared_ptr<std::vector<size_t> >,
     size_t,
     mio::shared_mmap_source>
-create_index(const char* filename, char delim, int num_threads);
+create_index(
+    const char* filename,
+    const char delim,
+    const char quote,
+    const int num_threads);
 
 std::tuple<
     std::shared_ptr<std::vector<size_t> >,
@@ -24,6 +28,7 @@ create_index_connection(
     SEXP con,
     const std::string& out_file,
     const char delim,
-    R_xlen_t chunk_size = 64 * 1024);
+    const char quote,
+    const R_xlen_t chunk_size = 64 * 1024);
 
 #endif /* READIDX_IDX_HEADER */

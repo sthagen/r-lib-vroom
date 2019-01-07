@@ -64,7 +64,13 @@ public:
     auto next_loc = (*sep_locs)[idx + 1] - 1;
     auto len = next_loc - cur_loc;
 
-    auto val = Rf_mkCharLenCE(inf.mmap.data() + cur_loc, len, CE_UTF8);
+    auto begin = inf.mmap.data() + cur_loc;
+    auto end = begin + len;
+
+    trim_quotes(begin, end, inf.quote);
+
+    auto val = Rf_mkCharLenCE(begin, end - begin, CE_UTF8);
+
     val = check_na(vec, val);
 
     return val;
@@ -119,7 +125,12 @@ public:
       auto next_loc = (*sep_locs)[idx + 1] - 1;
       auto len = next_loc - cur_loc;
 
-      auto val = Rf_mkCharLenCE(inf.mmap.data() + cur_loc, len, CE_UTF8);
+      auto begin = inf.mmap.data() + cur_loc;
+      auto end = begin + len;
+
+      trim_quotes(begin, end, inf.quote);
+
+      auto val = Rf_mkCharLenCE(begin, end - begin, CE_UTF8);
 
       // Look for NAs
       for (R_xlen_t j = 0; j < na_len; ++j) {

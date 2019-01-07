@@ -31,7 +31,7 @@ std::tuple<
     std::shared_ptr<std::vector<size_t> >,
     size_t,
     mio::shared_mmap_source>
-create_index(const char* filename, char delim, int num_threads) {
+create_index(const char* filename, char delim, char quote, int num_threads) {
   size_t columns = 0;
 
   std::error_code error;
@@ -79,13 +79,14 @@ create_index(const char* filename, char delim, int num_threads) {
               columns = values[id].size() + 1;
             }
             values[id].push_back(cur_loc + 1);
+          }
 
-          } else if (*i == delim) {
+          else if (*i == delim) {
             // Rcpp::Rcout << id << '\n';
             values[id].push_back(cur_loc + 1);
           }
 
-          else if (*i == '"') {
+          else if (*i == quote) {
             quotes[id].push_back(cur_loc);
           }
 
@@ -114,7 +115,7 @@ create_index(const char* filename, char delim, int num_threads) {
   bool in_quote = false;
 
   // Rcpp::Rcerr << "combining vectors\n";
-  for (auto id = 0; id < values.size(); ++id) {
+  for (size_t id = 0; id < values.size(); ++id) {
     auto idx = &values[id];
     auto quote = &quotes[id];
 
@@ -122,7 +123,7 @@ create_index(const char* filename, char delim, int num_threads) {
     auto q = quote->cbegin();
 
     while (q != quote->cend()) {
-      while (i != quote->cend() && *i <= *q) {
+      while (i != idx->cend() && *i <= *q) {
         if (!in_quote) {
           out->emplace_back(*i);
         }
@@ -138,13 +139,13 @@ create_index(const char* filename, char delim, int num_threads) {
     }
   }
 
-  std::ofstream log(
-      "test2.idx",
-      std::fstream::out | std::fstream::binary | std::fstream::trunc);
-  for (auto& v : *out) {
-    log << v << '\n';
-  }
-  log.close();
+  // std::ofstream log(
+  //"test2.idx",
+  // std::fstream::out | std::fstream::binary | std::fstream::trunc);
+  // for (auto& v : *out) {
+  // log << v << '\n';
+  //}
+  // log.close();
 
   return std::make_tuple(out, columns, mmap);
 }
