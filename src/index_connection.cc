@@ -92,8 +92,9 @@ index_connection::index_connection(
 #endif
 
   if (progress_) {
-    pb_ = RProgress::RProgress("indexed :bytes in :elapsed, :rate", 1e12);
-    pb_.update(0);
+    // pb_ = std::unique_ptr<multi_progress>(
+    // new multi_progress("indexed :bytes in :elapsed, :rate", 1e12);
+    // pb_->update(0);
   }
 
   while (sz > 0) {
@@ -106,7 +107,8 @@ index_connection::index_connection(
   out.close();
 
   if (progress_) {
-    pb_.update(1);
+    // pb_
+    // pb_.update(1);
   }
 
   /* raw connections are always created as open, but we should close them */

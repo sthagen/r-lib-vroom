@@ -61,8 +61,9 @@ index::index(
     const auto leaf = path.substr(pos + 1);
     std::string format =
         std::string("indexing ") + leaf + " [:bar] :rate, eta: :eta";
-    pb_ = RProgress::RProgress(format, file_size, Rf_GetOptionWidth() - 2, '=');
-    pb_.update(0);
+    pb_ =
+        std::unique_ptr<multi_progress>(new multi_progress(format, file_size));
+    pb_->update(0);
   }
 
   //
@@ -81,7 +82,7 @@ index::index(
   index_region(mmap_, idx_[0], delim, quote, start, first_nl + 1, -1);
   columns_ = idx_[0].size() - 1;
 
-  parallel_for(
+  auto threads = parallel_for(
       file_size - first_nl,
       [&](int start, int end, int id) {
         idx_[id + 1].reserve((guessed_rows / num_threads) * columns_);
@@ -91,7 +92,16 @@ index::index(
             mmap_, idx_[id + 1], delim, quote, start, end, file_size / 200);
       },
       num_threads,
-      true);
+      true,
+      false);
+
+  if (progress_) {
+    pb_->display_progress();
+  }
+
+  for (auto& t : threads) {
+    t.join();
+  }
 
   auto total_size = std::accumulate(
       idx_.begin(), idx_.end(), 0, [](size_t sum, const idx_t& v) {
@@ -99,9 +109,8 @@ index::index(
         return sum;
       });
 
-  if (progress_) {
-    pb_.update(1);
-  }
+  // std::for_each(
+  // threads.begin(), threads.end(), std::mem_fn(&std::thread::join));
 
   // for (auto& v : values) {
 

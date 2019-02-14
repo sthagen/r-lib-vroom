@@ -1,8 +1,6 @@
 #ifndef READIDX_IDX_HEADER
 #define READIDX_IDX_HEADER
 
-#include <Rcpp.h>
-
 // clang-format off
 # pragma clang diagnostic push
 # pragma clang diagnostic ignored "-Wsign-compare"
@@ -11,8 +9,10 @@
 // clang-format on
 
 #include <array>
-#include "RProgress.h"
-#include <mutex>
+
+#include "multi_progress.h"
+
+#include <Rcpp.h>
 
 namespace vroom {
 
@@ -140,8 +140,7 @@ public:
   size_t rows_;
   size_t columns_;
   bool progress_;
-  RProgress::RProgress pb_;
-  std::mutex pb_mutex_;
+  std::unique_ptr<multi_progress> pb_;
 
   void skip_lines();
 
@@ -295,8 +294,7 @@ public:
         if (progress_) {
           auto tick_size = i - last_tick;
           if (tick_size > update_size) {
-            std::lock_guard<std::mutex> guard(pb_mutex_);
-            pb_.tick(i - last_tick);
+            pb_->update(i - last_tick);
             last_tick = i;
             ++num_ticks;
           }
@@ -308,6 +306,9 @@ public:
       i = result + last + 1;
     }
 
+    if (progress_) {
+      pb_->update(end - last_tick);
+    }
     // Rcpp::Rcerr << num_ticks << '\n';
   }
 };
