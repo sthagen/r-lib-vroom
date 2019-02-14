@@ -140,7 +140,6 @@ public:
   size_t rows_;
   size_t columns_;
   bool progress_;
-  std::unique_ptr<multi_progress> pb_;
 
   void skip_lines();
 
@@ -250,7 +249,7 @@ public:
 
   std::pair<const char*, const char*> get_cell(size_t i) const;
 
-  template <typename T>
+  template <typename T, typename P>
   void index_region(
       const T& source,
       idx_t& destination,
@@ -258,6 +257,7 @@ public:
       const char quote,
       const size_t start,
       const size_t end,
+      P& pb,
       const size_t update_size = -1) {
 
     // If there are no quotes quote will be '\0', so will just work
@@ -294,7 +294,7 @@ public:
         if (progress_) {
           auto tick_size = i - last_tick;
           if (tick_size > update_size) {
-            pb_->update(i - last_tick);
+            pb->tick(i - last_tick);
             last_tick = i;
             ++num_ticks;
           }
@@ -307,7 +307,7 @@ public:
     }
 
     if (progress_) {
-      pb_->update(end - last_tick);
+      pb->tick(end - last_tick);
     }
     // Rcpp::Rcerr << num_ticks << '\n';
   }

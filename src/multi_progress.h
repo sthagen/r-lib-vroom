@@ -16,7 +16,7 @@ public:
       const char complete_char = '=',
       const char incomplete_char = '-',
       bool clear = true,
-      double show_after = 0.02)
+      double show_after = 0.2)
       : pb_(RProgress::RProgress(
             format,
             total,
@@ -29,7 +29,7 @@ public:
         total_progress_(0),
         total_(total) {}
 
-  void update(size_t progress) {
+  void tick(size_t progress) {
     std::lock_guard<std::mutex> guard(mutex_);
     progress_ += progress;
     mutex_.unlock();

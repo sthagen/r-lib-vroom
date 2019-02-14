@@ -2,6 +2,7 @@
 
 #include <fstream>
 
+#include "utils.h"
 #include <Rcpp.h>
 
 // clang-format off
@@ -82,23 +83,24 @@ index_connection::index_connection(
   // Check for windows newlines
   windows_newlines_ = first_nl > 0 && buf[first_nl - 1] == '\r';
 
+  std::unique_ptr<RProgress::RProgress> pb = nullptr;
+  if (progress_) {
+    pb = std::unique_ptr<RProgress::RProgress>(
+        new RProgress::RProgress(get_pb_format("connection"), 1e12));
+    pb->update(0);
+  }
+
   // Index the first row
   idx_[0].push_back(start - 1);
-  index_region(buf, idx_[0], delim, quote, start, first_nl + 1);
+  index_region(buf, idx_[0], delim, quote, start, first_nl + 1, pb);
   columns_ = idx_[0].size() - 1;
 
 #if DEBUG
   Rcpp::Rcerr << "columns: " << columns_ << '\n';
 #endif
 
-  if (progress_) {
-    // pb_ = std::unique_ptr<multi_progress>(
-    // new multi_progress("indexed :bytes in :elapsed, :rate", 1e12);
-    // pb_->update(0);
-  }
-
   while (sz > 0) {
-    index_region(buf, idx_[1], delim, quote, first_nl, sz, sz / 10);
+    index_region(buf, idx_[1], delim, quote, first_nl, sz, pb, sz / 10);
     out.write(buf.data(), sz);
 
     sz = R_ReadConnection(con, buf.data(), chunk_size);
@@ -107,8 +109,7 @@ index_connection::index_connection(
   out.close();
 
   if (progress_) {
-    // pb_
-    // pb_.update(1);
+    pb->update(1);
   }
 
   /* raw connections are always created as open, but we should close them */

@@ -1,6 +1,7 @@
 #include "index.h"
 
 #include "parallel.h"
+#include "utils.h"
 
 #include <fstream>
 
@@ -55,15 +56,12 @@ index::index(
   // Check for windows newlines
   windows_newlines_ = first_nl > 0 && mmap_[first_nl - 1] == '\r';
 
+  std::unique_ptr<multi_progress> pb = nullptr;
+
   if (progress_) {
-    std::string path = filename;
-    auto const pos = path.find_last_of("/");
-    const auto leaf = path.substr(pos + 1);
-    std::string format =
-        std::string("indexing ") + leaf + " [:bar] :rate, eta: :eta";
-    pb_ =
-        std::unique_ptr<multi_progress>(new multi_progress(format, file_size));
-    pb_->update(0);
+    pb = std::unique_ptr<multi_progress>(
+        new multi_progress(get_pb_format("file", filename), file_size));
+    pb->tick(0);
   }
 
   //
@@ -79,7 +77,7 @@ index::index(
 
   // Index the first row
   idx_[0].push_back(start - 1);
-  index_region(mmap_, idx_[0], delim, quote, start, first_nl + 1, -1);
+  index_region(mmap_, idx_[0], delim, quote, start, first_nl + 1, pb, -1);
   columns_ = idx_[0].size() - 1;
 
   auto threads = parallel_for(
@@ -89,14 +87,14 @@ index::index(
         start = find_next_newline(mmap_, first_nl + start);
         end = find_next_newline(mmap_, first_nl + end) + 1;
         index_region(
-            mmap_, idx_[id + 1], delim, quote, start, end, file_size / 200);
+            mmap_, idx_[id + 1], delim, quote, start, end, pb, file_size / 200);
       },
       num_threads,
       true,
       false);
 
   if (progress_) {
-    pb_->display_progress();
+    pb->display_progress();
   }
 
   for (auto& t : threads) {

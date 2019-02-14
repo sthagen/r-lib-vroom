@@ -21,6 +21,8 @@ Imports:
     tibble,
     withr,
     Rcpp,
+    glue,
+    crayon,
     progress
 URL: https://github.com/jimhester/vroom
 BugReports: https://github.com/jimhester/vroom/issues

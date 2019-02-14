@@ -105,3 +105,12 @@ show_progress <- function() {
     !isTRUE(getOption("rstudio.notebook.executing")) &&
     !isTRUE(as.logical(Sys.getenv("TESTTHAT", "false")))
 }
+
+#' @importFrom crayon blue cyan green bold reset
+pb_file_format <- function(filename) {
+  glue::glue_col("{bold}indexing{reset} {blue}{basename(filename)}{reset} [:bar] {green}:rate{reset}, eta: {cyan}:eta{reset}")
+}
+
+pb_connection_format <- function(unused) {
+  glue::glue_col("{bold}indexed{reset} {green}:bytes{reset} in {cyan}:elapsed{reset}, {green}:rate{reset}")
+}
