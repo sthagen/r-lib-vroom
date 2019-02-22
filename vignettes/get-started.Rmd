@@ -91,7 +91,7 @@ just pass the filename of the compressed file to vroom.
 ```{r}
 file <- vroom_example("mtcars.csv.gz")
 
-vroom(file)
+#vroom(file)
 ```
 
 ## reading remote files
