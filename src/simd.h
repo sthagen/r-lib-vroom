@@ -1,3 +1,4 @@
+#include "common.h"
 #include "mio/mmap.hpp"
 #include "portability.h"
 #include <cstdio>
@@ -9,12 +10,6 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
-
-#define SIMDJSON_PADDING sizeof(__m256i)
-
-#define really_inline inline __attribute__((always_inline, unused))
-#define never_inline inline __attribute__((noinline, unused))
-#define WARN_UNUSED __attribute__((warn_unused_result))
 
 char* allocate_padded_buffer(size_t length) {
   // we could do a simple malloc
