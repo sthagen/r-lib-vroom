@@ -27,7 +27,7 @@ Imports:
     crayon
 URL: https://github.com/jimhester/vroom
 BugReports: https://github.com/jimhester/vroom/issues
-SystemRequirements: C++11
+SystemRequirements: C++17
 Suggests: 
     bench,
     covr,
