@@ -1,6 +1,9 @@
 #pragma once
 
+#include "LocaleInfo.h"
 #include "altrep.h"
+#include "index.h"
+#include "index_collection.h"
 
 #include <Rcpp.h>
 

@@ -3,6 +3,7 @@
 #include <fstream>
 #include <future> // std::async, std::future
 
+#include "simd.h"
 #include "utils.h"
 #include <Rcpp.h>
 
@@ -70,8 +71,8 @@ index_connection::index_connection(
     Rcpp::as<Rcpp::Function>(Rcpp::Environment::base_env()["open"])(in, "rb");
   }
 
-  std::array<std::vector<char>, 2> buf = {std::vector<char>(chunk_size)};
-  // std::vector<char>(chunk_size)};
+  // char* buf = allocate_padded_buffer(chunk_size);
+  auto buf = std::vector<char>(chunk_size);
 
   // A buf index that alternates between 0,1
   auto i = 0;
@@ -80,25 +81,25 @@ index_connection::index_connection(
 
   idx_[0].reserve(128);
 
-  auto sz = R_ReadConnection(con, buf[i].data(), chunk_size - 1);
-  buf[i][sz] = '\0';
+  auto sz = R_ReadConnection(con, buf.data(), chunk_size - 1);
+  buf[sz] = '\0';
 
   // Parse header
-  auto start = find_first_line(buf[i]);
+  auto start = find_first_line(buf, skip_, comment_);
 
   std::string delim_;
   if (delim == nullptr) {
-    delim_ = std::string(1, guess_delim(buf[i], start));
+    delim_ = std::string(1, guess_delim(buf, start));
   } else {
     delim_ = delim;
   }
 
   delim_len_ = delim_.length();
 
-  auto first_nl = find_next_newline(buf[i], start);
+  auto first_nl = find_next_newline(buf, start);
 
   // Check for windows newlines
-  windows_newlines_ = first_nl > 0 && buf[i][first_nl - 1] == '\r';
+  windows_newlines_ = first_nl > 0 && buf[first_nl - 1] == '\r';
 
   std::unique_ptr<RProgress::RProgress> pb = nullptr;
   if (progress_) {
@@ -109,8 +110,8 @@ index_connection::index_connection(
 
   // Index the first row
   idx_[0].push_back(start - 1);
-  index_region(
-      buf[i], idx_[0], delim_.c_str(), quote, start, first_nl + 1, 0, pb);
+  index_region_simd(
+      buf.data(), idx_[0], delim_.c_str()[0], quote, start, first_nl + 1, 0);
   columns_ = idx_[0].size() - 1;
 
 #if DEBUG
@@ -119,32 +120,28 @@ index_connection::index_connection(
 #endif
 
   auto total_read = 0;
-  std::future<void> parse_fut;
-  std::future<void> write_fut;
   // We don't actually want any progress bar, so just pass a dummy one.
-  std::unique_ptr<RProgress::RProgress> empty_pb = nullptr;
 
   while (sz > 0) {
-    if (parse_fut.valid()) {
-      parse_fut.wait();
-    }
+    // if (parse_fut.valid()) {
+    // parse_fut.wait();
+    //}
     // parse_fut = std::async([&, i, sz, first_nl, total_read] {
-    index_region(
-        buf[i],
+    index_region_simd(
+        buf.data(),
         idx_[1],
-        delim_.c_str(),
+        delim_.c_str()[0],
         quote,
         first_nl,
         sz,
-        total_read,
-        empty_pb);
+        total_read);
     //});
 
-    if (write_fut.valid()) {
-      write_fut.wait();
-    }
+    // if (write_fut.valid()) {
+    // write_fut.wait();
+    //}
     // write_fut = std::async([&, i, sz] {
-    out.write(buf[i].data(), sz);
+    out.write(buf.data(), sz);
     out.flush();
     //});
 
@@ -155,15 +152,13 @@ index_connection::index_connection(
     total_read += sz;
 
     // i = (i + 1) % 2;
-    sz = R_ReadConnection(con, buf[i].data(), chunk_size - 1);
+    sz = R_ReadConnection(con, buf.data(), chunk_size - 1);
     if (sz > 0) {
-      buf[i][sz] = '\0';
+      buf[sz] = '\0';
     }
 
     first_nl = 0;
   }
-  // parse_fut.wait();
-  // write_fut.wait();
   out.close();
 
   if (progress_) {

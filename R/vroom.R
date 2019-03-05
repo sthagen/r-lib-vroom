@@ -172,3 +172,10 @@ guess_delim <- function(lines, delims = c(",", "\t", " ", "|", ":", ";", "\n")) 
   delims[[res]]
 }
 
+
+vroom_numeric <- function(...) {
+  out <- vroom_numeric_(...)
+
+  out
+  #tibble::as_tibble(out, .name_repair = make.names)
+}

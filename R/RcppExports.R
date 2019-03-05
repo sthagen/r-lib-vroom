@@ -17,3 +17,7 @@ vroom_ <- function(inputs, delim, quote, trim_ws, escape_double, escape_backslas
     .Call(`_vroom_vroom_`, inputs, delim, quote, trim_ws, escape_double, escape_backslash, comment, col_names, col_types, id, skip, na, locale, use_altrep, guess_max, num_threads, progress)
 }
 
+vroom_numeric_ <- function(filename, delim, skip, num_columns, num_rows) {
+    .Call(`_vroom_vroom_numeric_`, filename, delim, skip, num_columns, num_rows)
+}
+

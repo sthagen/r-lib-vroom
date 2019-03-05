@@ -66,12 +66,28 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// vroom_numeric_
+Rcpp::List vroom_numeric_(std::string filename, const char* delim, size_t skip, int num_columns, int num_rows);
+RcppExport SEXP _vroom_vroom_numeric_(SEXP filenameSEXP, SEXP delimSEXP, SEXP skipSEXP, SEXP num_columnsSEXP, SEXP num_rowsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< std::string >::type filename(filenameSEXP);
+    Rcpp::traits::input_parameter< const char* >::type delim(delimSEXP);
+    Rcpp::traits::input_parameter< size_t >::type skip(skipSEXP);
+    Rcpp::traits::input_parameter< int >::type num_columns(num_columnsSEXP);
+    Rcpp::traits::input_parameter< int >::type num_rows(num_rowsSEXP);
+    rcpp_result_gen = Rcpp::wrap(vroom_numeric_(filename, delim, skip, num_columns, num_rows));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_vroom_force_materialization", (DL_FUNC) &_vroom_force_materialization, 1},
     {"_vroom_vroom_materialize", (DL_FUNC) &_vroom_vroom_materialize, 1},
     {"_vroom_gen_character_", (DL_FUNC) &_vroom_gen_character_, 4},
     {"_vroom_vroom_", (DL_FUNC) &_vroom_vroom_, 17},
+    {"_vroom_vroom_numeric_", (DL_FUNC) &_vroom_vroom_numeric_, 5},
     {NULL, NULL, 0}
 };
 

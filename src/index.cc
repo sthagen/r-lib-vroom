@@ -44,7 +44,7 @@ index::index(
 
   size_t file_size = mmap_.cend() - mmap_.cbegin();
 
-  size_t start = find_first_line(mmap_);
+  size_t start = find_first_line(mmap_, skip_, comment_);
 
   std::string delim_;
 
@@ -202,13 +202,8 @@ index::get_cell(size_t i, bool is_first) const {
   for (const auto& idx : idx_) {
     auto sz = idx.size();
     if (i + 1 < sz) {
-      size_t start;
-      if (is_first) {
-        start = idx[i] + 1;
-      } else {
-        start = idx[i] + delim_len_;
-      }
-      auto end = idx[i + 1];
+      size_t start = idx[i] + delim_len_;
+      size_t end = idx[i + 1];
       return {mmap_.data() + start, mmap_.data() + end};
     }
 
