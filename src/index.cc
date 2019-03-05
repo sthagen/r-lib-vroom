@@ -1,6 +1,6 @@
 #include "index.h"
 
-#include "parallel.h"
+#include "simd.h"
 
 #include <fstream>
 
@@ -31,94 +31,92 @@ index::index(
       progress_(progress),
       delim_len_(0) {
 
-  std::error_code error;
-  mmap_ = mio::make_mmap_source(filename, error);
+  constexpr size_t chunk_size = 1 << 17;
+  auto buf = std::vector<char>(chunk_size);
 
-  if (error) {
-    // We cannot actually portably compare error messages due to a bug in
-    // libstdc++ (https://stackoverflow.com/a/54316671/2055486), so just print
-    // the message on stderr return
-    Rcpp::Rcerr << "mmaping error: " << error.message() << '\n';
-    return;
-  }
+  std::FILE* fp = std::fopen(filename_.c_str(), "rb");
 
-  size_t file_size = mmap_.cend() - mmap_.cbegin();
+  std::fseek(fp, 0, SEEK_END);
+  size_t file_size = std::ftell(fp);
+  std::rewind(fp);
 
-  size_t start = find_first_line(mmap_, skip_, comment_);
+  size_t readb = std::fread(buf.data(), 1, chunk_size, fp);
+
+  size_t start = find_first_line(buf, skip_, comment_);
 
   std::string delim_;
 
   if (delim == nullptr) {
-    delim_ = std::string(1, guess_delim(mmap_, start));
+    delim_ = std::string(1, guess_delim(buf, start));
   } else {
     delim_ = delim;
   }
 
   delim_len_ = delim_.length();
 
-  size_t first_nl = find_next_newline(mmap_, start);
-  size_t second_nl = find_next_newline(mmap_, first_nl + 1);
+  size_t first_nl = find_next_newline(buf, start);
+  size_t second_nl = find_next_newline(buf, first_nl + 1);
   size_t one_row_size = second_nl - first_nl;
   size_t guessed_rows =
       one_row_size > 0 ? (file_size - first_nl) / one_row_size * 1.1 : 0;
 
   // Check for windows newlines
-  windows_newlines_ = first_nl > 0 && mmap_[first_nl - 1] == '\r';
+  windows_newlines_ = first_nl > 0 && buf[first_nl - 1] == '\r';
 
-  std::unique_ptr<multi_progress> pb = nullptr;
+  std::unique_ptr<RProgress::RProgress> pb = nullptr;
 
   if (progress_) {
     auto format = get_pb_format("file", filename);
     auto width = get_pb_width(format);
-    pb = std::unique_ptr<multi_progress>(
-        new multi_progress(format, file_size, width));
+    pb = std::unique_ptr<RProgress::RProgress>(
+        new RProgress::RProgress(format, file_size, width));
     pb->tick(0);
   }
 
   //
   // We want at least 10 lines per batch, otherwise threads aren't really
   // useful
-  size_t batch_size = file_size / num_threads;
-  size_t line_size = second_nl - first_nl;
-  if (batch_size < line_size * 10) {
-    num_threads = 1;
-  }
+  // size_t batch_size = file_size / num_threads;
+  // size_t line_size = second_nl - first_nl;
+  // if (batch_size < line_size * 10) {
+  // num_threads = 1;
+  //}
 
-  idx_ = std::vector<idx_t>(num_threads + 1);
+  idx_ = std::vector<idx_t>(2); // num_threads + 1);
 
   // Index the first row
   idx_[0].push_back(start - 1);
-  index_region(
-      mmap_, idx_[0], delim_.c_str(), quote, start, first_nl + 1, 0, pb, -1);
+  index_region_simd(
+      buf.data(), idx_[0], delim_.c_str()[0], quote, start, first_nl + 1, 0);
   columns_ = idx_[0].size() - 1;
 
-  auto threads = parallel_for(
-      file_size - first_nl,
-      [&](size_t start, size_t end, size_t id) {
-        idx_[id + 1].reserve((guessed_rows / num_threads) * columns_);
-        start = find_next_newline(mmap_, first_nl + start);
-        end = find_next_newline(mmap_, first_nl + end) + 1;
-        index_region(
-            mmap_,
-            idx_[id + 1],
-            delim_.c_str(),
-            quote,
-            start,
-            end,
-            0,
-            pb,
-            file_size / 100);
-      },
-      num_threads,
-      true,
-      false);
+  idx_[1].reserve(guessed_rows * columns_);
 
-  if (progress_) {
-    pb->display_progress();
+  size_t total_read = 0;
+  while (readb > 0) {
+    if (readb < chunk_size) {
+      std::memset(buf.data() + readb, '\0', chunk_size - readb);
+    }
+    index_region_simd(
+        buf.data(),
+        idx_[1],
+        delim_.c_str()[0],
+        quote,
+        first_nl,
+        readb,
+        total_read);
+
+    if (progress_) {
+      pb->tick(readb);
+    }
+
+    total_read += readb;
+    readb = std::fread(buf.data(), 1, chunk_size, fp);
   }
 
-  for (auto& t : threads) {
-    t.join();
+  std::fclose(fp);
+  if (progress_) {
+    pb->update(1);
   }
 
   size_t total_size = std::accumulate(
@@ -146,6 +144,9 @@ index::index(
   log.close();
   Rcpp::Rcerr << columns_ << ':' << rows_ << '\n';
 #endif
+
+  std::error_code error;
+  mmap_ = mio::make_mmap_source(filename_.c_str(), error);
 }
 
 void index::trim_quotes(const char*& begin, const char*& end) const {

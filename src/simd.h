@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 
-char* allocate_padded_buffer(size_t length) {
+static char* allocate_padded_buffer(size_t length) {
   // we could do a simple malloc
   // return (char *) malloc(length + SIMDJSON_PADDING);
   // However, we might as well align to cache lines...
@@ -51,14 +51,14 @@ inline void dump256(__m256i d, std::string msg) {
 }
 
 // dump bits low to high
-void dumpbits(uint64_t v, std::string msg) {
+static void dumpbits(uint64_t v, std::string msg) {
   for (uint32_t i = 0; i < 64; i++) {
     std::cout << (((v >> (uint64_t)i) & 0x1ULL) ? "1" : "_");
   }
   std::cout << " " << msg << "\n";
 }
 
-void dumpbits32(uint32_t v, std::string msg) {
+static void dumpbits32(uint32_t v, std::string msg) {
   for (uint32_t i = 0; i < 32; i++) {
     std::cout << (((v >> (uint32_t)i) & 0x1ULL) ? "1" : "_");
   }
@@ -94,7 +94,6 @@ WARN_UNUSED never_inline bool index_region_simd(
   // the purposes of psuedo-structural character detection
   uint64_t prev_iter_ends_pseudo_pred = 1ULL;
   size_t idx = start;
-  uint64_t structurals = 0;
   for (; idx < end; idx += 64) {
     __m256i input_lo =
         _mm256_loadu_si256(reinterpret_cast<const __m256i*>(buf + idx + 0));
