@@ -1,5 +1,5 @@
 #include "mio/mmap.hpp"
-#include <cstdint>
+#include "portability.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -9,31 +9,12 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include <x86intrin.h>
 
 #define SIMDJSON_PADDING sizeof(__m256i)
 
 #define really_inline inline __attribute__((always_inline, unused))
 #define never_inline inline __attribute__((noinline, unused))
 #define WARN_UNUSED __attribute__((warn_unused_result))
-
-static inline bool
-add_overflow(uint64_t value1, uint64_t value2, uint64_t* result) {
-  return __builtin_uaddll_overflow(value1, value2, (unsigned long long*)result);
-}
-
-/* result might be undefined when input_num is zero */
-static inline int hamming(uint64_t input_num) { return _popcnt64(input_num); }
-
-/* result might be undefined when input_num is zero */
-static inline uint64_t trailingzeroes(uint64_t input_num) {
-#ifdef __BMI__
-  return _tzcnt_u64(input_num);
-#else
-#warning "BMI is missing?"
-  return __builtin_ctzll(input_num);
-#endif
-}
 
 char* allocate_padded_buffer(size_t length) {
   // we could do a simple malloc
@@ -47,13 +28,6 @@ char* allocate_padded_buffer(size_t length) {
     return nullptr;
   }
   return padded_buffer;
-}
-
-static inline void aligned_free(void* memblock) {
-  if (memblock == nullptr) {
-    return;
-  }
-  free(memblock);
 }
 
 //
