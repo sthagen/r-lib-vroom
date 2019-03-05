@@ -11,7 +11,7 @@ addons:
     packages:
       g++-7
 
-before_install: mkdir -p ~/.R && echo 'CXX11=g++-7' > ~/.R/Makevars && echo 'CXX1X=g++-7' >> ~/.R/Makevars && echo 'CXX11FLAGS=-O3' >> ~/.R/Makevars && echo 'CXX1XFLAGS=-O3' >> ~/.R/Makevars
+before_install: mkdir -p ~/.R && echo 'CXX17=g++-7' > ~/.R/Makevars && echo 'CXX1z=g++-7' >> ~/.R/Makevars && echo 'CXX17FLAGS=-O3' >> ~/.R/Makevars && echo 'CXX1zFLAGS=-O3' >> ~/.R/Makevars
 
 matrix:
   include:
