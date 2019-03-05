@@ -10,7 +10,7 @@ addons:
     packages:
       g++-5
 
-before_install: mkdir -p ~/.R && echo "CXX11=g++-5` > ~/.R/Makevars
+before_install: mkdir -p ~/.R && echo 'CXX11=g++-5' > ~/.R/Makevars
 
 matrix:
   include:
