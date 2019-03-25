@@ -14,12 +14,12 @@ action "Build Image" {
 
 action "Build Package" {
   needs = "Build Image"
-  uses = "./Rscript-byod"
+  uses = "maxheld83/ghactions/Rscript-byod@master"
   args = "-e 'devtools::build(path = \".\")'"
 }
 
 action "Check Package" {
-  uses = "./Rscript-byod"
+  uses = "maxheld83/ghactions/Rscript-byod@master"
   needs = ["Build Package"]
   args = "-e 'devtools::check_built(path = \".\", error_on = \"warning\")'"
 }
