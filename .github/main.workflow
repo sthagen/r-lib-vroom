@@ -12,14 +12,8 @@ action "Build Image" {
   args = "build --tag=repo:latest ."
 }
 
-action "Build Package" {
-  needs = "Build Image"
-  uses = "maxheld83/ghactions/Rscript-byod@master"
-  args = "-e 'devtools::build(path = \".\")'"
-}
-
 action "Check Package" {
   uses = "maxheld83/ghactions/Rscript-byod@master"
-  needs = ["Build Package"]
-  args = "-e 'devtools::check_built(path = \".\", error_on = \"warning\")'"
+  needs = ["Build Image"]
+  args = "-e 'devtools::install_dev_deps()' -e 'devtools::check(path = \".\", error_on = \"warning\")'"
 }
