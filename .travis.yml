@@ -17,3 +17,4 @@ matrix:
   - r: oldrel
   - r: 3.3
   - r: 3.2
+  - os: osx
