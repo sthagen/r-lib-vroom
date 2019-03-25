@@ -15,7 +15,7 @@ action "Build Image" {
 action "Build Package" {
   needs = "Build Image"
   uses = "maxheld83/ghactions/Rscript-byod@master"
-  args = "-e 'devtools::install_dev_deps()' -e 'devtools::build(path = \".\")'"
+  args = "-e 'devtools::build(path = \".\")'"
 }
 
 action "Check Package" {
