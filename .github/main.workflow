@@ -14,6 +14,6 @@ action "Build Image" {
 
 action "Check Package" {
   uses = "maxheld83/ghactions/Rscript-byod@master"
-  needs = ["Build Image"]
+  needs = "Build Image"
   args = "-e 'devtools::install_dev_deps()' -e 'devtools::check(path = \".\", error_on = \"warning\")'"
 }
