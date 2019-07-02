@@ -6,11 +6,11 @@ workflow "Fix Documentation" {
 }
 
 action "Install Dependencies" {
-  uses = "r-lib/ghactions/actions/install-deps@29c5ac0349c783689bf1f0f0a5fde40baa6002fb"
+  uses = "r-lib/ghactions/actions/install-deps@bc9b6b4cba39c28f651fdfc16ffdab98678da4b9"
 }
 
 action "Document Package" {
-  uses = "r-lib/ghactions/actions/document@29c5ac0349c783689bf1f0f0a5fde40baa6002fb"
+  uses = "r-lib/ghactions/actions/document@bc9b6b4cba39c28f651fdfc16ffdab98678da4b9"
   needs = [
     "Install Dependencies"
   ]
