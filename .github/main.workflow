@@ -6,14 +6,15 @@ workflow "Fix Documentation" {
 }
 
 action "Install Dependencies" {
-  uses = "r-lib/ghactions/actions/install-deps@8347a162e105155a6ff7066f7c57461948551278"
+
+  uses = "r-lib/ghactions/actions/install-deps@v0.4.1"
 }
 
 action "Document Package" {
-  uses = "r-lib/ghactions/actions/document@8347a162e105155a6ff7066f7c57461948551278"
   needs = [
     "Install Dependencies"
   ]
+  uses = "r-lib/ghactions/actions/document@v0.4.1"
   args = [
     "--after-code=commit"
   ]
@@ -21,3 +22,4 @@ action "Document Package" {
     "GITHUB_TOKEN"
   ]
 }
+
