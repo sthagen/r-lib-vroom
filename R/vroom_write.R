@@ -13,6 +13,9 @@
 #' @param bom If `TRUE` add a UTF-8 BOM at the beginning of the file. This is
 #'   recommended when saving data for consumption by excel, as it will force
 #'   excel to read the data with the correct encoding (UTF-8)
+#' @param delim Delimiter used to separate values. Defaults to `\t` to write
+#'   tab separated value (TSV) files.
+#' @param na String used for missing values. Defaults to 'NA'.
 #' @export
 #' @examples
 #' # If you only specify a file name, vroom_write() will write
@@ -32,6 +35,11 @@ vroom_write <- function(x, path, delim = '\t', na = "NA", col_names = !append,
   append = FALSE, quote = c("needed", "all", "none"), escape =
     c("double", "backslash", "none"), bom = FALSE, num_threads =
     vroom_threads(), progress = vroom_progress()) {
+
+  # If there are no rows or columns in the data frame, just return
+  if (NROW(x) == 0 || NCOL(x) == 0) {
+    return(invisible(x))
+  }
 
   quote <- match.arg(quote)
   escape <- match.arg(escape)

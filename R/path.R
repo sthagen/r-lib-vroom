@@ -5,6 +5,13 @@ standardise_path <- function(path) {
   }
 
   if (inherits(path, "connection")) {
+    # If the connection is `stdin()`, change it to `file("stdin")`, as we don't
+    # support text mode connections.
+
+    if (path == stdin()) {
+      return(list(file("stdin")))
+    }
+
     return(list(path))
   }
 
@@ -16,6 +23,7 @@ standardise_path <- function(path) {
 }
 
 standardise_one_path <- function (path, write = FALSE) {
+
   if (is.raw(path)) {
     return(rawConnection(path, "rb"))
   }
@@ -28,7 +36,7 @@ standardise_one_path <- function (path, write = FALSE) {
     if (requireNamespace("curl", quietly = TRUE)) {
       con <- curl::curl(path)
     } else {
-      message("`curl` package not installed, falling back to using `url()`")
+      rlang::inform("`curl` package not installed, falling back to using `url()`")
       con <- url(path)
     }
     ext <- tolower(tools::file_ext(path))
@@ -80,8 +88,9 @@ check_path <- function(path) {
     return(normalizePath(path, "/", mustWork = FALSE))
 
   stop("'", path, "' does not exist",
-    if (!is_absolute_path(path))
-      paste0(" in current working directory ('", getwd(), "')"),
+    if (!is_absolute_path(path)) {
+      paste0(" in current working directory ('", getwd(), "')")
+    },
     ".",
     call. = FALSE
   )
@@ -96,7 +105,7 @@ zipfile <- function(path, open = "r") {
   file <- files$Name[[1]]
 
   if (nrow(files) > 1) {
-    message("Multiple files in zip: reading '", file, "'")
+    rlang::inform(paste0("Multiple files in zip: reading '", file, "'"))
   }
 
   unz(path, file, open = open)

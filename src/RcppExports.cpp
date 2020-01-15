@@ -55,21 +55,22 @@ BEGIN_RCPP
 END_RCPP
 }
 // guess_type_
-std::string guess_type_(CharacterVector input, List locale, bool guess_integer);
-RcppExport SEXP _vroom_guess_type_(SEXP inputSEXP, SEXP localeSEXP, SEXP guess_integerSEXP) {
+std::string guess_type_(CharacterVector input, CharacterVector na, List locale, bool guess_integer);
+RcppExport SEXP _vroom_guess_type_(SEXP inputSEXP, SEXP naSEXP, SEXP localeSEXP, SEXP guess_integerSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< CharacterVector >::type input(inputSEXP);
+    Rcpp::traits::input_parameter< CharacterVector >::type na(naSEXP);
     Rcpp::traits::input_parameter< List >::type locale(localeSEXP);
     Rcpp::traits::input_parameter< bool >::type guess_integer(guess_integerSEXP);
-    rcpp_result_gen = Rcpp::wrap(guess_type_(input, locale, guess_integer));
+    rcpp_result_gen = Rcpp::wrap(guess_type_(input, na, locale, guess_integer));
     return rcpp_result_gen;
 END_RCPP
 }
 // vroom_
-SEXP vroom_(List inputs, SEXP delim, const char quote, bool trim_ws, bool escape_double, bool escape_backslash, const char comment, size_t skip, ptrdiff_t n_max, bool progress, RObject col_names, RObject col_types, RObject col_select, SEXP id, CharacterVector na, List locale, ptrdiff_t guess_max, size_t num_threads, size_t altrep_opts);
-RcppExport SEXP _vroom_vroom_(SEXP inputsSEXP, SEXP delimSEXP, SEXP quoteSEXP, SEXP trim_wsSEXP, SEXP escape_doubleSEXP, SEXP escape_backslashSEXP, SEXP commentSEXP, SEXP skipSEXP, SEXP n_maxSEXP, SEXP progressSEXP, SEXP col_namesSEXP, SEXP col_typesSEXP, SEXP col_selectSEXP, SEXP idSEXP, SEXP naSEXP, SEXP localeSEXP, SEXP guess_maxSEXP, SEXP num_threadsSEXP, SEXP altrep_optsSEXP) {
+SEXP vroom_(List inputs, SEXP delim, const char quote, bool trim_ws, bool escape_double, bool escape_backslash, const char comment, size_t skip, ptrdiff_t n_max, bool progress, RObject col_names, RObject col_types, RObject col_select, SEXP id, CharacterVector na, List locale, ptrdiff_t guess_max, size_t num_threads, size_t altrep);
+RcppExport SEXP _vroom_vroom_(SEXP inputsSEXP, SEXP delimSEXP, SEXP quoteSEXP, SEXP trim_wsSEXP, SEXP escape_doubleSEXP, SEXP escape_backslashSEXP, SEXP commentSEXP, SEXP skipSEXP, SEXP n_maxSEXP, SEXP progressSEXP, SEXP col_namesSEXP, SEXP col_typesSEXP, SEXP col_selectSEXP, SEXP idSEXP, SEXP naSEXP, SEXP localeSEXP, SEXP guess_maxSEXP, SEXP num_threadsSEXP, SEXP altrepSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -91,18 +92,18 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< List >::type locale(localeSEXP);
     Rcpp::traits::input_parameter< ptrdiff_t >::type guess_max(guess_maxSEXP);
     Rcpp::traits::input_parameter< size_t >::type num_threads(num_threadsSEXP);
-    Rcpp::traits::input_parameter< size_t >::type altrep_opts(altrep_optsSEXP);
-    rcpp_result_gen = Rcpp::wrap(vroom_(inputs, delim, quote, trim_ws, escape_double, escape_backslash, comment, skip, n_max, progress, col_names, col_types, col_select, id, na, locale, guess_max, num_threads, altrep_opts));
+    Rcpp::traits::input_parameter< size_t >::type altrep(altrepSEXP);
+    rcpp_result_gen = Rcpp::wrap(vroom_(inputs, delim, quote, trim_ws, escape_double, escape_backslash, comment, skip, n_max, progress, col_names, col_types, col_select, id, na, locale, guess_max, num_threads, altrep));
     return rcpp_result_gen;
 END_RCPP
 }
 // has_trailing_newline
-bool has_trailing_newline(std::string filename);
+bool has_trailing_newline(CharacterVector filename);
 RcppExport SEXP _vroom_has_trailing_newline(SEXP filenameSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< std::string >::type filename(filenameSEXP);
+    Rcpp::traits::input_parameter< CharacterVector >::type filename(filenameSEXP);
     rcpp_result_gen = Rcpp::wrap(has_trailing_newline(filename));
     return rcpp_result_gen;
 END_RCPP
@@ -119,8 +120,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // vroom_fwf_
-List vroom_fwf_(List inputs, std::vector<int> col_starts, std::vector<int> col_ends, bool trim_ws, RObject col_names, RObject col_types, RObject col_select, size_t skip, const char comment, ptrdiff_t n_max, SEXP id, CharacterVector na, List locale, ptrdiff_t guess_max, size_t num_threads, size_t altrep_opts, bool progress);
-RcppExport SEXP _vroom_vroom_fwf_(SEXP inputsSEXP, SEXP col_startsSEXP, SEXP col_endsSEXP, SEXP trim_wsSEXP, SEXP col_namesSEXP, SEXP col_typesSEXP, SEXP col_selectSEXP, SEXP skipSEXP, SEXP commentSEXP, SEXP n_maxSEXP, SEXP idSEXP, SEXP naSEXP, SEXP localeSEXP, SEXP guess_maxSEXP, SEXP num_threadsSEXP, SEXP altrep_optsSEXP, SEXP progressSEXP) {
+List vroom_fwf_(List inputs, std::vector<int> col_starts, std::vector<int> col_ends, bool trim_ws, RObject col_names, RObject col_types, RObject col_select, size_t skip, const char comment, ptrdiff_t n_max, SEXP id, CharacterVector na, List locale, ptrdiff_t guess_max, size_t num_threads, size_t altrep, bool progress);
+RcppExport SEXP _vroom_vroom_fwf_(SEXP inputsSEXP, SEXP col_startsSEXP, SEXP col_endsSEXP, SEXP trim_wsSEXP, SEXP col_namesSEXP, SEXP col_typesSEXP, SEXP col_selectSEXP, SEXP skipSEXP, SEXP commentSEXP, SEXP n_maxSEXP, SEXP idSEXP, SEXP naSEXP, SEXP localeSEXP, SEXP guess_maxSEXP, SEXP num_threadsSEXP, SEXP altrepSEXP, SEXP progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -139,21 +140,21 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< List >::type locale(localeSEXP);
     Rcpp::traits::input_parameter< ptrdiff_t >::type guess_max(guess_maxSEXP);
     Rcpp::traits::input_parameter< size_t >::type num_threads(num_threadsSEXP);
-    Rcpp::traits::input_parameter< size_t >::type altrep_opts(altrep_optsSEXP);
+    Rcpp::traits::input_parameter< size_t >::type altrep(altrepSEXP);
     Rcpp::traits::input_parameter< bool >::type progress(progressSEXP);
-    rcpp_result_gen = Rcpp::wrap(vroom_fwf_(inputs, col_starts, col_ends, trim_ws, col_names, col_types, col_select, skip, comment, n_max, id, na, locale, guess_max, num_threads, altrep_opts, progress));
+    rcpp_result_gen = Rcpp::wrap(vroom_fwf_(inputs, col_starts, col_ends, trim_ws, col_names, col_types, col_select, skip, comment, n_max, id, na, locale, guess_max, num_threads, altrep, progress));
     return rcpp_result_gen;
 END_RCPP
 }
 // whitespace_columns_
-List whitespace_columns_(std::string filename, size_t skip, int n, std::string comment);
+List whitespace_columns_(std::string filename, size_t skip, ptrdiff_t n, std::string comment);
 RcppExport SEXP _vroom_whitespace_columns_(SEXP filenameSEXP, SEXP skipSEXP, SEXP nSEXP, SEXP commentSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< std::string >::type filename(filenameSEXP);
     Rcpp::traits::input_parameter< size_t >::type skip(skipSEXP);
-    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< ptrdiff_t >::type n(nSEXP);
     Rcpp::traits::input_parameter< std::string >::type comment(commentSEXP);
     rcpp_result_gen = Rcpp::wrap(whitespace_columns_(filename, skip, n, comment));
     return rcpp_result_gen;
@@ -218,7 +219,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_vroom_vroom_materialize", (DL_FUNC) &_vroom_vroom_materialize, 2},
     {"_vroom_vroom_str_", (DL_FUNC) &_vroom_vroom_str_, 1},
     {"_vroom_gen_character_", (DL_FUNC) &_vroom_gen_character_, 6},
-    {"_vroom_guess_type_", (DL_FUNC) &_vroom_guess_type_, 3},
+    {"_vroom_guess_type_", (DL_FUNC) &_vroom_guess_type_, 4},
     {"_vroom_vroom_", (DL_FUNC) &_vroom_vroom_, 19},
     {"_vroom_has_trailing_newline", (DL_FUNC) &_vroom_has_trailing_newline, 1},
     {"_vroom_vroom_rle", (DL_FUNC) &_vroom_vroom_rle, 1},
@@ -230,6 +231,7 @@ static const R_CallMethodDef CallEntries[] = {
     {NULL, NULL, 0}
 };
 
+void init_vroom_big_int(DllInfo* dll);
 void init_vroom_chr(DllInfo* dll);
 void init_vroom_date(DllInfo* dll);
 void init_vroom_dbl(DllInfo* dll);
@@ -242,6 +244,7 @@ void init_vroom_time(DllInfo* dll);
 RcppExport void R_init_vroom(DllInfo *dll) {
     R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
     R_useDynamicSymbols(dll, FALSE);
+    init_vroom_big_int(dll);
     init_vroom_chr(dll);
     init_vroom_date(dll);
     init_vroom_dbl(dll);

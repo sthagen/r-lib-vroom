@@ -1,5 +1,19 @@
 context("test-vroom_write.R")
 
+test_that("empty inputs just return themselves without writing anything", {
+  out <- tempfile()
+
+  no_rows <- mtcars[FALSE, ]
+  no_cols <- mtcars[, FALSE]
+  no_rows_or_cols <- mtcars[FALSE, FALSE]
+
+  expect_equal(vroom_write(no_rows, out), no_rows)
+  expect_equal(vroom_write(no_cols, out), no_cols)
+  expect_equal(vroom_write(no_rows_or_cols, out), no_rows_or_cols)
+
+  expect_false(file.exists(out))
+})
+
 test_that("strings are only quoted if needed", {
   x <- c("a", ',')
 
@@ -19,13 +33,15 @@ test_that("na argument modifies how missing values are written", {
 })
 
 test_that("read_delim/csv/tsv and write_delim round trip special chars", {
-  x <- c("a", '"', ",", "\n","at\t")
+  x <- stats::setNames(list("a", '"', ",", "\n","at\t"), paste0("V", seq_len(5)))
 
-  output <- data.frame(x)
-  input <- vroom(vroom_format(output, delim = " "), delim = " ", trim_ws = FALSE, progress = FALSE)
-  input_csv <- vroom(vroom_format(output, delim = ","), trim_ws = FALSE, progress = FALSE)
-  input_tsv <- vroom(vroom_format(output, delim = "\t"), trim_ws = FALSE, progress = FALSE)
-  expect_equal(input$x, input_csv$x, input_tsv$x,  x)
+  output <- tibble::as_tibble(x)
+  output_space <- vroom(vroom_format(output, delim = " "), trim_ws = FALSE, progress = FALSE)
+  output_csv <- vroom(vroom_format(output, delim = ","), trim_ws = FALSE, progress = FALSE)
+  output_tsv <- vroom(vroom_format(output, delim = "\t"), trim_ws = FALSE, progress = FALSE)
+  expect_equal(output_space, output)
+  expect_equal(output_csv, output)
+  expect_equal(output_tsv, output)
 })
 
 test_that("special floating point values translated to text", {
@@ -156,7 +172,7 @@ test_that("Can change the escape behavior for quotes", {
 })
 
 test_that("hms NAs are written without padding (#930)", {
-  df <- data.frame(x = hms::as.hms(c(NA, 34.234)))
+  df <- data.frame(x = hms::as_hms(c(NA, 34.234)))
   expect_equal(vroom_format(df), "x\nNA\n00:00:34.234\n")
 })
 

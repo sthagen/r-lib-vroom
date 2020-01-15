@@ -8,7 +8,7 @@ class collector {
   const Rcpp::List data_;
   const SEXP name_;
   const column_type type_;
-  const size_t altrep_opts_;
+  const size_t altrep_;
 
 private:
   column_type derive_type(const std::string& t) {
@@ -20,6 +20,9 @@ private:
     }
     if (t == "collector_integer") {
       return column_type::Int;
+    }
+    if (t == "collector_big_integer") {
+      return column_type::BigInt;
     }
     if (t == "collector_number") {
       return column_type::Num;
@@ -44,12 +47,12 @@ private:
   }
 
 public:
-  collector(Rcpp::List data, SEXP name, size_t altrep_opts)
+  collector(Rcpp::List data, SEXP name, size_t altrep)
       : data_(data),
         name_(name),
         type_(derive_type(Rcpp::as<std::string>(
             Rcpp::as<Rcpp::CharacterVector>(data_.attr("class"))[0]))),
-        altrep_opts_(altrep_opts) {}
+        altrep_(altrep) {}
   column_type type() const { return type_; }
   SEXP name() const { return name_; }
   SEXP operator[](const char* nme) { return data_[nme]; }
@@ -58,21 +61,23 @@ public:
     case column_type::Skip:
       return false;
     case column_type::Dbl:
-      return altrep_opts_ & column_type::Dbl;
+      return altrep_ & column_type::Dbl;
     case column_type::Int:
-      return altrep_opts_ & column_type::Int;
+      return altrep_ & column_type::Int;
+    case column_type::BigInt:
+      return altrep_ & column_type::BigInt;
     case column_type::Num:
-      return altrep_opts_ & column_type::Num;
+      return altrep_ & column_type::Num;
     case column_type::Fct:
-      return altrep_opts_ & column_type::Fct;
+      return altrep_ & column_type::Fct;
     case column_type::Date:
-      return altrep_opts_ & column_type::Date;
+      return altrep_ & column_type::Date;
     case column_type::Dttm:
-      return altrep_opts_ & column_type::Dttm;
+      return altrep_ & column_type::Dttm;
     case column_type::Time:
-      return altrep_opts_ & column_type::Time;
+      return altrep_ & column_type::Time;
     case column_type::Chr:
-      return altrep_opts_ & column_type::Chr;
+      return altrep_ & column_type::Chr;
     default:
       return false;
     }
@@ -82,17 +87,17 @@ public:
 class collectors {
   Rcpp::List spec_;
   Rcpp::List collectors_;
-  size_t altrep_opts_;
+  size_t altrep_;
 
 public:
-  collectors(Rcpp::List col_types, size_t altrep_opts)
+  collectors(Rcpp::List col_types, size_t altrep)
       : spec_(col_types),
         collectors_(Rcpp::as<Rcpp::List>(col_types["cols"])),
-        altrep_opts_(altrep_opts) {}
+        altrep_(altrep) {}
   collector operator[](int i) {
     return {collectors_[i],
             Rcpp::as<Rcpp::CharacterVector>(collectors_.attr("names"))[i],
-            altrep_opts_};
+            altrep_};
   }
   Rcpp::List spec() { return spec_; }
 };
@@ -111,6 +116,12 @@ inline CharacterVector read_column_names(
   return nms;
 }
 
+std::string guess_type__(
+    CharacterVector input,
+    CharacterVector na,
+    LocaleInfo* locale,
+    bool guess_integer);
+
 inline collectors resolve_collectors(
     RObject col_names,
     RObject col_types,
@@ -119,7 +130,7 @@ inline collectors resolve_collectors(
     CharacterVector na,
     std::shared_ptr<LocaleInfo> locale_info,
     size_t guess_max,
-    size_t altrep_opts) {
+    size_t altrep) {
 
   auto num_cols = idx->num_columns();
   auto num_rows = idx->num_rows();
@@ -147,8 +158,6 @@ inline collectors resolve_collectors(
 
   auto guess_step = guess_num > 0 ? num_rows / guess_num : 0;
 
-  Rcpp::Function guess_type = vroom["guess_type"];
-
   Rcpp::List my_collectors = col_types_std["cols"];
 
   for (size_t col = 0; col < num_cols; ++col) {
@@ -163,10 +172,11 @@ inline collectors resolve_collectors(
         col_vals[j] =
             locale_info->encoder_.makeSEXP(str.begin(), str.end(), false);
       }
-      my_collectors[col] = Rcpp::as<Rcpp::List>(guess_type(
-          col_vals, Named("guess_integer") = false, Named("na") = na));
+      auto type = guess_type__(col_vals, na, locale_info.get(), false);
+      Rcpp::Function col_type = vroom[std::string("col_") + type];
+      my_collectors[col] = Rcpp::as<Rcpp::List>(col_type());
     }
   }
 
-  return {col_types_std, altrep_opts};
+  return {col_types_std, altrep};
 }

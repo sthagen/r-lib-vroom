@@ -80,8 +80,6 @@ delimited_index::delimited_index(
     return;
   }
 
-  std::string delim_;
-
   if (delim == nullptr) {
 #ifndef VROOM_STANDALONE
     delim_ = std::string(1, guess_delim(mmap_, start));
@@ -213,7 +211,7 @@ delimited_index::delimited_index(
   }
 
   size_t total_size = std::accumulate(
-      idx_.begin(), idx_.end(), 0, [](size_t sum, const idx_t& v) {
+      idx_.begin(), idx_.end(), std::size_t{0}, [](size_t sum, const idx_t& v) {
         sum += v.size() > 0 ? v.size() - 1 : 0;
         return sum;
       });
@@ -318,7 +316,7 @@ delimited_index::get_trimmed_val(size_t i, bool is_first, bool is_last) const {
 
   std::tie(begin, end) = get_cell(i, is_first);
 
-  if (is_last && windows_newlines_) {
+  if (is_last && windows_newlines_ && end > begin) {
     end--;
   }
 

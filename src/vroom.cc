@@ -31,7 +31,7 @@ SEXP vroom_(
     List locale,
     ptrdiff_t guess_max,
     size_t num_threads,
-    size_t altrep_opts) {
+    size_t altrep) {
 
   Rcpp::CharacterVector tempfile;
 
@@ -71,21 +71,26 @@ SEXP vroom_(
       filenames,
       na,
       locale,
-      altrep_opts,
+      altrep,
       guess_max,
       num_threads);
 }
 
 // [[Rcpp::export]]
-bool has_trailing_newline(std::string filename) {
-  std::FILE* f = std::fopen(filename.c_str(), "rb");
+bool has_trailing_newline(CharacterVector filename) {
+  std::FILE* f = std::fopen(CHAR(filename[0]), "rb");
 
   if (!f) {
     return true;
   }
 
+  std::setvbuf(f, NULL, _IONBF, 0);
+
   fseek(f, -1, SEEK_END);
   char c = fgetc(f);
+
+  fclose(f);
+
   return c == '\n';
 }
 

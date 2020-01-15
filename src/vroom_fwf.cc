@@ -23,7 +23,7 @@ List vroom_fwf_(
     List locale,
     ptrdiff_t guess_max,
     size_t num_threads,
-    size_t altrep_opts,
+    size_t altrep,
     bool progress) {
 
   std::vector<std::string> filenames;
@@ -48,20 +48,21 @@ List vroom_fwf_(
       filenames,
       na,
       locale,
-      altrep_opts,
+      altrep,
       guess_max,
       num_threads);
 }
 
 template <typename Iterator>
-std::vector<bool> find_empty_cols(Iterator begin, Iterator end, size_t n) {
+std::vector<bool> find_empty_cols(Iterator begin, Iterator end, ptrdiff_t n) {
 
   std::vector<bool> is_white;
 
   size_t row = 0, col = 0;
   for (Iterator cur = begin; cur != end; ++cur) {
-    if (row > n)
+    if (n > 0 && row > static_cast<size_t>(n)) {
       break;
+    }
 
     switch (*cur) {
     case '\n':
@@ -86,7 +87,7 @@ std::vector<bool> find_empty_cols(Iterator begin, Iterator end, size_t n) {
 
 // [[Rcpp::export]]
 List whitespace_columns_(
-    std::string filename, size_t skip, int n = 100, std::string comment = "") {
+    std::string filename, size_t skip, ptrdiff_t n, std::string comment) {
 
   std::error_code error;
   auto mmap = mio::make_mmap_source(filename, error);
@@ -98,7 +99,7 @@ List whitespace_columns_(
     return List();
   }
 
-  size_t s = find_first_line(mmap, 0, comment[0]);
+  size_t s = find_first_line(mmap, skip, comment[0]);
 
   std::vector<bool> empty = find_empty_cols(mmap.begin() + s, mmap.end(), n);
   std::vector<int> begin, end;

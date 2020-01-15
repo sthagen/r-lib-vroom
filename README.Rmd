@@ -16,37 +16,37 @@ knitr::opts_chunk$set(
 options(tibble.print_min = 3)
 ```
 
-# 🏎💨vroom  <a href="http://r-lib.github.io/vroom"><img src="https://github.com/r-lib/vroom/raw/gh-pages/taylor.gif" align="right" width = "30%"/></a>
+# 🏎💨vroom <a href='http:/vroom.r-lib.org'><img src='man/figures/logo.png' align="right" height="135" /></a>
 
 <!-- badges: start -->
-[![Travis build status](https://travis-ci.org/r-lib/vroom.svg?branch=master)](https://travis-ci.org/r-lib/vroom)
-[![AppVeyor build status](https://ci.appveyor.com/api/projects/status/github/r-lib/vroom?branch=master&svg=true)](https://ci.appveyor.com/project/r-lib/vroom)
+[![R build status](https://github.com/r-lib/vroom/workflows/R-CMD-check/badge.svg)](https://github.com/r-lib/vroom)
 [![Codecov test coverage](https://codecov.io/gh/r-lib/vroom/branch/master/graph/badge.svg)](https://codecov.io/gh/r-lib/vroom?branch=master)
 [![CRAN status](https://www.r-pkg.org/badges/version/vroom)](https://cran.r-project.org/package=vroom)
 [![Lifecycle: maturing](https://img.shields.io/badge/lifecycle-maturing-blue.svg)](https://www.tidyverse.org/lifecycle/#maturing)
 <!-- badges: end -->
 
 ```{r echo = FALSE, message = FALSE}
-tm <- vroom::vroom(system.file("bench", "taxi-times.tsv", package = "vroom"))
-versions <- vroom::vroom(system.file("bench", "sessioninfo.tsv", package = "vroom"))
+tm <- vroom::vroom(system.file("bench", "taxi.tsv", package = "vroom"))
+versions <- vroom::vroom(system.file("bench", "session_info.tsv", package = "vroom"))
 
 # Use the base version number for read.delim
 versions$package[versions$package == "base"] <- "read.delim"
 
 library(dplyr)
-tbl <- tm %>% dplyr::filter(type == "real", op == "read", package %in% c("vroom (full altrep)_base", "data.table", "readr", "read.delim")) %>%
-  mutate(package = sub(" .*", "", package)) %>%
+tbl <- tm %>% filter(type == "real", op == "read", reading_package %in% c("data.table", "readr", "read.delim") | manip_package == "base") %>%
+  rename(package = reading_package) %>%
   left_join(versions) %>%
   transmute(
     package = package,
     version = ondiskversion,
     "time (sec)" = time,
     speedup = max(time) / time,
-    "throughput" = paste0(prettyunits::pretty_bytes(size / time))
-  )
+    "throughput" = paste0(prettyunits::pretty_bytes(size / time), "/sec")
+  ) %>%
+  arrange(desc(speedup))
 ```
 
-The fastest delimited reader for R, **`r dplyr::filter(tbl, package == "vroom") %>% pull("throughput") %>% paste0("/sec") %>% trimws()`**.
+The fastest delimited reader for R, **`r filter(tbl, package == "vroom") %>% pull("throughput") %>% paste0("/sec") %>% trimws()`**.
 
 But that's impossible! How can it be [so fast](http://vroom.r-lib.org/articles/benchmarks.html)?
 
@@ -72,7 +72,7 @@ vroom has nearly all of the parsing features of
 - delimiter guessing\*
 - custom delimiters (including multi-byte\* and Unicode\* delimiters)
 - specification of column types (including type guessing)
-  - numeric types (double, integer, number)
+  - numeric types (double, integer, big integer\*, number)
   - logical types
   - datetime types (datetime, date, time)
   - categorical types (characters, factors)
@@ -88,7 +88,7 @@ vroom has nearly all of the parsing features of
 - robust to invalid inputs (vroom has been extensively tested with the
   [afl](http://lcamtuf.coredump.cx/afl/) fuzz tester)\*.
 
-\* *these are additional features only in vroom.*
+\* *these are additional features not in readr.*
 
 \*\* *requires `num_threads = 1`.*
 
@@ -105,7 +105,7 @@ Alternatively, if you need the development version from
 
 ``` r
 # install.packages("devtools")
-devtools::install_github("r-lib/vroom")
+devtools::install_dev("vroom")
 ```
 ## Usage
 
@@ -141,7 +141,7 @@ airline.
 library(nycflights13)
 purrr::iwalk(
   split(flights, flights$carrier),
-  ~ { str(.x$carrier[[1]]); vroom::vroom_write(.x, glue::glue("flights_{.y}.tsv"), delim = "\t") }
+  ~ { .x$carrier[[1]]; vroom::vroom_write(.x, glue::glue("flights_{.y}.tsv"), delim = "\t") }
 )
 ```
 
@@ -158,9 +158,15 @@ vroom::vroom(files)
 fs::file_delete(files)
 ```
 
+## Learning more
+
+- [Getting started with vroom](https://r-lib.github.io/vroom/articles/vroom.html)
+- [📽 vroom: Because Life is too short to read slow](https://www.youtube.com/watch?v=RA9AjqZXxMU&t=10s) - Presentation at UseR!2019 ([slides](https://speakerdeck.com/jimhester/vroom))
+- [📹 vroom: Read and write rectangular data quickly](https://www.youtube.com/watch?v=ZP_y5eaAc60) - a video tour of the vroom features.
+
 ## Benchmarks
 
-The speed quoted above is from a real dataset with 14,776,615 rows and 11 columns,
+The speed quoted above is from a real `r format(fs::fs_bytes(tm$size[[1]]))` dataset with `r format(tm$rows[[1]], big.mark = ",")` rows and `r tm$cols[[1]]` columns,
 see the [benchmark article](http://vroom.r-lib.org/articles/benchmarks.html)
 for full details of the dataset and
 [bench/](https://github.com/r-lib/vroom/blob/master/inst/bench) for the code
@@ -200,6 +206,7 @@ There are also individual variables for each type. Currently only
 - `VROOM_USE_ALTREP_CHR`
 - `VROOM_USE_ALTREP_FCT`
 - `VROOM_USE_ALTREP_INT`
+- `VROOM_USE_ALTREP_BIG_INT`
 - `VROOM_USE_ALTREP_DBL`
 - `VROOM_USE_ALTREP_NUM`
 - `VROOM_USE_ALTREP_LGL`

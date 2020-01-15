@@ -1,14 +1,12 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# 🏎💨vroom <a href="http://r-lib.github.io/vroom"><img src="https://github.com/r-lib/vroom/raw/gh-pages/taylor.gif" align="right" width = "30%"/></a>
+# 🏎💨vroom <a href='http:/vroom.r-lib.org'><img src='man/figures/logo.png' align="right" height="135" /></a>
 
 <!-- badges: start -->
 
-[![Travis build
-status](https://travis-ci.org/r-lib/vroom.svg?branch=master)](https://travis-ci.org/r-lib/vroom)
-[![AppVeyor build
-status](https://ci.appveyor.com/api/projects/status/github/r-lib/vroom?branch=master&svg=true)](https://ci.appveyor.com/project/r-lib/vroom)
+[![R build
+status](https://github.com/r-lib/vroom/workflows/R-CMD-check/badge.svg)](https://github.com/r-lib/vroom)
 [![Codecov test
 coverage](https://codecov.io/gh/r-lib/vroom/branch/master/graph/badge.svg)](https://codecov.io/gh/r-lib/vroom?branch=master)
 [![CRAN
@@ -17,7 +15,7 @@ status](https://www.r-pkg.org/badges/version/vroom)](https://cran.r-project.org/
 maturing](https://img.shields.io/badge/lifecycle-maturing-blue.svg)](https://www.tidyverse.org/lifecycle/#maturing)
 <!-- badges: end -->
 
-The fastest delimited reader for R, **1.27 GB/sec**.
+The fastest delimited reader for R, **1.40 GB/sec/sec**.
 
 But that’s impossible\! How can it be [so
 fast](http://vroom.r-lib.org/articles/benchmarks.html)?
@@ -33,12 +31,12 @@ your R data-manipulation code are needed.
 vroom also uses multiple threads for indexing, materializing
 non-character columns, and when writing to further improve performance.
 
-| package    | version | time (sec) | speedup | throughput |
-| :--------- | ------: | ---------: | ------: | ---------: |
-| vroom      |   1.0.2 |       1.33 |   56.02 |    1.27 GB |
-| data.table |  1.12.2 |      15.15 |    4.91 |  110.99 MB |
-| readr      |   1.3.1 |      34.81 |    2.14 |   48.31 MB |
-| read.delim |   3.6.0 |      74.45 |    1.00 |   22.59 MB |
+| package    | version | time (sec) | speedup |    throughput |
+| :--------- | ------: | ---------: | ------: | ------------: |
+| vroom      |   1.1.0 |       1.14 |   58.44 |   1.40 GB/sec |
+| data.table |  1.12.8 |      11.88 |    5.62 | 134.13 MB/sec |
+| readr      |   1.3.1 |      29.02 |    2.30 |  54.92 MB/sec |
+| read.delim |   3.6.2 |      66.74 |    1.00 |  23.88 MB/sec |
 
 ## Features
 
@@ -49,7 +47,7 @@ files, including
   - delimiter guessing\*
   - custom delimiters (including multi-byte\* and Unicode\* delimiters)
   - specification of column types (including type guessing)
-      - numeric types (double, integer, number)
+      - numeric types (double, integer, big integer\*, number)
       - logical types
       - datetime types (datetime, date, time)
       - categorical types (characters, factors)
@@ -66,7 +64,7 @@ files, including
   - robust to invalid inputs (vroom has been extensively tested with the
     [afl](http://lcamtuf.coredump.cx/afl/) fuzz tester)\*.
 
-\* *these are additional features only in vroom.*
+\* *these are additional features not in readr.*
 
 \*\* *requires `num_threads = 1`.*
 
@@ -83,7 +81,7 @@ Alternatively, if you need the development version from
 
 ``` r
 # install.packages("devtools")
-devtools::install_github("r-lib/vroom")
+devtools::install_dev("vroom")
 ```
 
 ## Usage
@@ -119,24 +117,8 @@ by airline.
 library(nycflights13)
 purrr::iwalk(
   split(flights, flights$carrier),
-  ~ { str(.x$carrier[[1]]); vroom::vroom_write(.x, glue::glue("flights_{.y}.tsv"), delim = "\t") }
+  ~ { .x$carrier[[1]]; vroom::vroom_write(.x, glue::glue("flights_{.y}.tsv"), delim = "\t") }
 )
-#>  chr "9E"
-#>  chr "AA"
-#>  chr "AS"
-#>  chr "B6"
-#>  chr "DL"
-#>  chr "EV"
-#>  chr "F9"
-#>  chr "FL"
-#>  chr "HA"
-#>  chr "MQ"
-#>  chr "OO"
-#>  chr "UA"
-#>  chr "US"
-#>  chr "VX"
-#>  chr "WN"
-#>  chr "YV"
 ```
 
 Then we can efficiently read them into one tibble by passing the
@@ -150,14 +132,15 @@ files
 #> flights_OO.tsv flights_UA.tsv flights_US.tsv flights_VX.tsv flights_WN.tsv 
 #> flights_YV.tsv
 vroom::vroom(files)
-#> Observations: 336,776
-#> Variables: 19
+#> Rows: 336,776
+#> Columns: 19
+#> Delimiter: "\t"
 #> chr  [ 4]: carrier, tailnum, origin, dest
-#> dbl  [14]: year, month, day, dep_time, sched_dep_time, dep_delay, arr_time, sched_arr...
+#> dbl  [14]: year, month, day, dep_time, sched_dep_time, dep_delay, arr_time, sched_arr_...
 #> dttm [ 1]: time_hour
 #> 
-#> Call `spec()` for a copy-pastable column specification
-#> Specify the column types with `col_types` to quiet this message
+#> Use `spec()` to retrieve the guessed column specification
+#> Pass a specification to the `col_types` argument to quiet this message
 #> # A tibble: 336,776 x 19
 #>    year month   day dep_time sched_dep_time dep_delay arr_time
 #>   <dbl> <dbl> <dbl>    <dbl>          <dbl>     <dbl>    <dbl>
@@ -170,10 +153,22 @@ vroom::vroom(files)
 #> #   minute <dbl>, time_hour <dttm>
 ```
 
+## Learning more
+
+  - [Getting started with
+    vroom](https://r-lib.github.io/vroom/articles/vroom.html)
+  - [📽 vroom: Because Life is too short to read
+    slow](https://www.youtube.com/watch?v=RA9AjqZXxMU&t=10s) -
+    Presentation at UseR\!2019
+    ([slides](https://speakerdeck.com/jimhester/vroom))
+  - [📹 vroom: Read and write rectangular data
+    quickly](https://www.youtube.com/watch?v=ZP_y5eaAc60) - a video tour
+    of the vroom features.
+
 ## Benchmarks
 
-The speed quoted above is from a real dataset with 14,776,615 rows and
-11 columns, see the [benchmark
+The speed quoted above is from a real 1.48G dataset with 13,971,118 rows
+and 11 columns, see the [benchmark
 article](http://vroom.r-lib.org/articles/benchmarks.html) for full
 details of the dataset and
 [bench/](https://github.com/r-lib/vroom/blob/master/inst/bench) for the
@@ -215,6 +210,7 @@ There are also individual variables for each type. Currently only
   - `VROOM_USE_ALTREP_CHR`
   - `VROOM_USE_ALTREP_FCT`
   - `VROOM_USE_ALTREP_INT`
+  - `VROOM_USE_ALTREP_BIG_INT`
   - `VROOM_USE_ALTREP_DBL`
   - `VROOM_USE_ALTREP_NUM`
   - `VROOM_USE_ALTREP_LGL`

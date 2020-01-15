@@ -6,6 +6,8 @@
 \alias{_PACKAGE}
 \title{vroom: Read and Write Rectangular Text Data Quickly}
 \description{
+\if{html}{\figure{logo.png}{options: align='right' alt='logo' width='120'}}
+
 The goal of 'vroom' is to read and write data (like
     'csv', 'tsv' and 'fwf') quickly. When reading it uses a quick initial
     indexing step, then reads the values lazily , so only the data you
@@ -21,11 +23,11 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Jim Hester \email{james.f.hester@gmail.com} (0000-0002-2739-7082)
+\strong{Maintainer}: Jim Hester \email{james.f.hester@gmail.com} (\href{https://orcid.org/0000-0002-2739-7082}{ORCID})
 
 Authors:
 \itemize{
-  \item Hadley Wickham \email{hadley@rstudio.com} (0000-0003-4757-117X)
+  \item Hadley Wickham \email{hadley@rstudio.com} (\href{https://orcid.org/0000-0003-4757-117X}{ORCID})
 }
 
 Other contributors:

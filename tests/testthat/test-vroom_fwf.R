@@ -1,6 +1,6 @@
 context("vroom_fwf")
 
-test_that("trailing spaces ommitted", {
+test_that("trailing spaces omitted", {
   spec <- fwf_empty(test_path("fwf-trailing.txt"))
   expect_equal(spec$begin, c(0, 4))
   expect_equal(spec$end, c(3, NA))
@@ -9,11 +9,21 @@ test_that("trailing spaces ommitted", {
   expect_equal(df$X1, df$X2)
 })
 
+test_that("dos newlines handles", {
+  spec <- fwf_empty(test_path("fwf-trailing.txt"))
+  x <- vroom_fwf(test_path("fwf-trailing.txt"), spec)
+  y <- vroom_fwf(test_path("fwf-trailing-crlf.txt"), spec)
+  expect_equal(x, y)
+
+  z <- vroom_fwf(file(test_path("fwf-trailing-crlf.txt")), spec)
+  expect_equal(x, z)
+})
+
 test_that("connections and normal files produce identical output", {
   spec <- fwf_empty(test_path("fwf-trailing.txt"))
 
-  y <- vroom_fwf(test_path("fwf-trailing.txt"), spec)
-  x <- vroom_fwf(file(test_path("fwf-trailing.txt")), spec)
+  y <- vroom_fwf(test_path("fwf-trailing-crlf.txt"), spec)
+  x <- vroom_fwf(file(test_path("fwf-trailing-crlf.txt")), spec)
 
   expect_equal(x, y)
 })
@@ -57,6 +67,16 @@ test_that("fwf_empty can skip comments", {
 
   out1 <- vroom_fwf(x, fwf_empty(x, comment = "COMMENT"), comment = "COMMENT")
   expect_equal(dim(out1), c(2, 3))
+})
+
+test_that("fwf_empty can skip lines", {
+  x <- "foo\nbar\baz\n1 2 3\n4 5 6\n"
+
+  obj <- fwf_empty(x, skip = 3)
+
+  exp <- list(begin = c(0L, 2L, 4L), end = c(1L, 3L, NA_integer_), col_names = c("X1", "X2", "X3"))
+
+  expect_equal(obj, exp)
 })
 
 test_that("passing \"\" to vroom_fwf's 'na' option", {
@@ -193,4 +213,64 @@ test_that("fwf_positions always returns col_names as character (#797)", {
   expect_type(info$begin, "double")
   expect_type(info$end, "double")
   expect_type(info$col_names, "character")
+})
+
+# Robustness
+
+test_that("vroom_fwf() is robust to improper inputs", {
+  expect_error_free(
+    vroom_fwf("foo bar baz\n1   2\n")
+  )
+
+  expect_error_free(
+    vroom_fwf("foo bar baz\n1   2 \n")
+  )
+
+  expect_error_free(
+    vroom_fwf("foo bar baz\n1   2  \n")
+  )
+
+  expect_error_free(
+    vroom_fwf("foo bar baz\n1   2   \n")
+  )
+
+  expect_error_free(
+    vroom_fwf("foo bar baz\n1   2   \n4\n")
+  )
+
+  expect_error_free(
+    vroom_fwf("foo bar baz\n1   2   \n4 \n")
+  )
+
+  expect_error_free(
+    vroom_fwf("foo bar baz\n1   2   \n4  \n")
+  )
+
+  expect_error_free(
+    vroom_fwf("foo bar baz\n1   2   \n4   \n")
+  )
+
+  expect_error_free(
+    vroom_fwf("foo bar baz\n1   2   \n4   5\n")
+  )
+
+  expect_error_free(
+    vroom_fwf("foo bar baz\n1   2   \n4   5 \n")
+  )
+
+  expect_error_free(
+    vroom_fwf("foo bar baz\n1   2   \n4   5  \n")
+  )
+
+  expect_error_free(
+    vroom_fwf("foo bar baz\n1   2   \n4   5   \n")
+  )
+
+  expect_error_free(
+    vroom_fwf("foo bar baz\n1   2   \n4   5   6\n")
+  )
+
+  expect_error_free(
+    vroom_fwf("A\n  a\n")
+  )
 })

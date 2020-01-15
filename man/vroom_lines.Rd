@@ -4,8 +4,15 @@
 \alias{vroom_lines}
 \title{Read lines from a file}
 \usage{
-vroom_lines(file, n_max = Inf, skip = 0, altrep_opts = "chr",
-  num_threads = vroom_threads(), progress = vroom_progress())
+vroom_lines(
+  file,
+  n_max = Inf,
+  skip = 0,
+  altrep = TRUE,
+  altrep_opts = deprecated(),
+  num_threads = vroom_threads(),
+  progress = vroom_progress()
+)
 }
 \arguments{
 \item{file}{path to a local file.}
@@ -14,11 +21,15 @@ vroom_lines(file, n_max = Inf, skip = 0, altrep_opts = "chr",
 
 \item{skip}{Number of lines to skip before reading data.}
 
-\item{altrep_opts}{Control which column types use Altrep representations,
+\item{altrep}{Control which column types use Altrep representations,
 either a character vector of types, \code{TRUE} or \code{FALSE}. See
-\code{\link[=vroom_altrep_opts]{vroom_altrep_opts()}} for for full details.}
+\code{\link[=vroom_altrep]{vroom_altrep()}} for for full details.}
 
-\item{num_threads}{Number of threads to use when reading and materializing vectors.}
+\item{altrep_opts}{\Sexpr[results=rd, stage=render]{lifecycle::badge("deprecated")}}
+
+\item{num_threads}{Number of threads to use when reading and materializing
+vectors. If your data contains embedded newlines (newlines within fields)
+you \emph{must} use \code{num_threads = 1} to read the data properly.}
 
 \item{progress}{Display a progress bar? By default it will only display
 in an interactive session and not while knitting a document. The display

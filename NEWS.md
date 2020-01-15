@@ -1,6 +1,73 @@
 # vroom (development version)
 
+* `vroom()` columns now support indexing with NA values (#201)
+
+# vroom 1.2.0
+
+## Breaking changes
+
+* `vroom_altrep_opts()` and the argument `vroom(altrep_opts =)` have been
+  renamed to `vroom_altrep()` and `altrep` respectively. The prior names have
+  been deprecated.
+
+## New Features
+
+* `vroom()` now supports reading Big Integer values with the `bit64` package.
+  Use `col_big_integer()` or the "I" shortcut to read a column as big integers. (#198)
+
+* `cols()` gains a `.delim` argument and `vroom()` now uses it as the delimiter
+  if it is provided (#192)
+
+* `vroom()` now supports reading from `stdin()` directly, interpreted as the
+  C-level standard input (#106).
+
+## Minor improvements and fixes
+
+* `col_date` now parses single digit month and day (@edzer, #123, #170)
+
+* `fwf_empty()` now uses the `skip` parameter, as intended.
+
+* `vroom()` can now read single line files without a terminal newline (#173).
+
+* `vroom()` can now select the id column if provided (#110).
+
+* `vroom()` now correctly copies string data for factor levels (#184)
+
+* `vroom()` no longer crashes when files have trailing fields, windows newlines
+  and the file is not newline or null terminated.
+
+* `vroom()` now includes a spec object with the `col_types` class, as intended.
+
+* `vroom()` now better handles floating point values with very large exponents
+  (#164).
+
+* `vroom()` now uses better heuristics to guess the delimiter and now throws an
+  error if a delimiter cannot be guessed (#126, #141, #167).
+
+* `vroom()` now has an improved error message when a file does not exist (#169).
+
+* `vroom()` no longer leaks file handles (#177, #180)
+
+* `vroom()` now outputs its messages on `stdout()` rather than `stderr()`,
+  which avoids the text being red in RStudio and in the Windows GUI.
+
+* `vroom()` no longer overflows when reading files with more than 2B entries (@wlattner, #183).
+
+* `vroom_fwf()` is now more robust if not all lines are the expected length (#78)
+
+* `vroom_fwf()` and `fwf_empty()` now support passing `Inf` to `guess_max()`.
+
+* `vroom_str()` now works with S4 objects.
+
+* `vroom_fwf()` now handles files with dos newlines properly.
+
+* `vroom_write()` now does not try to write anything when given empty inputs (#172).
+
+* Dates, times, and datetimes now properly consider the locale when parsing.
+
 * Added benchmarks with _wide_ data for both numeric and character data (#87, @R3myG)
+
+* The delimiter used for parsing is now shown in the message output (#95 @R3myG)
 
 # vroom 1.0.2
 

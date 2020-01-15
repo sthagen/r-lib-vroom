@@ -5,6 +5,7 @@
 \alias{cols_only}
 \alias{col_logical}
 \alias{col_integer}
+\alias{col_big_integer}
 \alias{col_double}
 \alias{col_character}
 \alias{col_skip}
@@ -16,13 +17,15 @@
 \alias{col_time}
 \title{Create column specification}
 \usage{
-cols(..., .default = col_guess())
+cols(..., .default = col_guess(), .delim = NULL)
 
 cols_only(...)
 
 col_logical(...)
 
 col_integer(...)
+
+col_big_integer(...)
 
 col_double(...)
 
@@ -43,15 +46,19 @@ col_date(format = "", ...)
 col_time(format = "", ...)
 }
 \arguments{
-\item{...}{Either column objects created by \code{col_*()}, or their abbreviated
+\item{...}{Either column objects created by \verb{col_*()}, or their abbreviated
 character names (as described in the \code{col_types} argument of
 \code{\link[=vroom]{vroom()}}). If you're only overriding a few columns, it's
 best to refer to columns by name. If not named, the column types must match
-the column names exactly. In \code{col_*()} functions these are stored in the
+the column names exactly. In \verb{col_*()} functions these are stored in the
 object.}
 
 \item{.default}{Any named columns not explicitly overridden in \code{...}
 will be read with this column type.}
+
+\item{.delim}{The delimiter to use when parsing. If the \code{delim} argument
+used in the call to \code{vroom()} it takes precedence over the one specified in
+\code{col_types}.}
 
 \item{levels}{Character vector providing set of allowed levels. if \code{NULL},
 will generate levels based on the unique values of \code{x}, ordered by order
@@ -63,7 +70,7 @@ of appearance in \code{x}.}
 
 \item{format}{A format specification, as described below. If set to "",
 date times are parsed as ISO8601, dates and times used the date and
-time formats specified in the \code{\link[=locale]{locale()}}.
+time formats specified in the \code{\link[readr:locale]{locale()}}.
 
 Unlike \code{\link[=strptime]{strptime()}}, the format specification must match
 the complete string.}
@@ -78,6 +85,7 @@ The available specifications are: (with string abbreviations in brackets)
 \itemize{
 \item \code{col_logical()} [l], containing only \code{T}, \code{F}, \code{TRUE} or \code{FALSE}.
 \item \code{col_integer()} [i], integers.
+\item \code{col_big_integer()} [I], Big Integers (64bit), requires the \code{bit64} package.
 \item \code{col_double()} [d], doubles.
 \item \code{col_character()} [c], everything else.
 \item \code{col_factor(levels, ordered)} [f], a fixed set of values.

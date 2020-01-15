@@ -1,5 +1,6 @@
 #' @useDynLib vroom, .registration = TRUE
 #' @importFrom Rcpp sourceCpp
+#' @importFrom bit64 integer64
 NULL
 
 #' Read a delimited file into a tibble
@@ -7,9 +8,11 @@ NULL
 #' @inheritParams readr::read_delim
 #' @param file path to a local file.
 #' @param delim One of more characters used to delimiter fields within a
-#'   record. If `NULL` the delimiter is guessed from the set of `c(",", "\\t", " ",
-#'   "|", ":", ";", "\\n")`.
-#' @param num_threads Number of threads to use when reading and materializing vectors.
+#'   record. If `NULL` the delimiter is guessed from the set of `c(",", "\t", " ",
+#'   "|", ":", ";")`.
+#' @param num_threads Number of threads to use when reading and materializing
+#'   vectors. If your data contains embedded newlines (newlines within fields)
+#'   you _must_ use `num_threads = 1` to read the data properly.
 #' @param escape_double Does the file escape quotes by doubling them?
 #'   i.e. If this option is `TRUE`, the value '""' represents
 #'   a single quote, '"'.
@@ -23,9 +26,10 @@ NULL
 #'   column names are not empty and unique. See `.name_repair` as documented in
 #'   [tibble::tibble()] for additional options including supplying user defined
 #'   name repair functions.
-#' @param altrep_opts Control which column types use Altrep representations,
+#' @param altrep Control which column types use Altrep representations,
 #'   either a character vector of types, `TRUE` or `FALSE`. See
-#'   [vroom_altrep_opts()] for for full details.
+#'   [vroom_altrep()] for for full details.
+#' @param altrep_opts \Sexpr[results=rd, stage=render]{lifecycle::badge("deprecated")}
 #' @export
 #' @examples
 #' # Show path to example file
@@ -74,14 +78,34 @@ NULL
 #' vroom("a\tb\n1.0\t2.0\n")
 #' # Other delimiters
 #' vroom("a|b\n1.0|2.0\n", delim = "|")
-vroom <- function(file, delim = NULL, col_names = TRUE, col_types = NULL,
+vroom <- function(
+  file,
+  delim = NULL,
+  col_names = TRUE,
+  col_types = NULL,
   col_select = NULL,
-  id = NULL, skip = 0, n_max = Inf,
-  na = c("", "NA"), quote = '"', comment = "", trim_ws = TRUE,
-  escape_double = TRUE, escape_backslash = FALSE, locale = default_locale(),
-  guess_max = 100, altrep_opts = "chr", num_threads = vroom_threads(), progress = vroom_progress(),
-  .name_repair = "unique") {
+  id = NULL,
+  skip = 0,
+  n_max = Inf,
+  na = c("", "NA"),
+  quote = '"',
+  comment = "",
+  trim_ws = TRUE,
+  escape_double = TRUE,
+  escape_backslash = FALSE,
+  locale = default_locale(),
+  guess_max = 100,
+  altrep = TRUE,
+  altrep_opts = deprecated(),
+  num_threads = vroom_threads(),
+  progress = vroom_progress(),
+  .name_repair = "unique"
+  ) {
 
+  if (!rlang::is_missing(altrep_opts)) {
+    deprecate_warn("1.1.0", "vroom(altrep_opts = )", "vroom(altrep = )")
+    altrep <- altrep_opts
+  }
 
   file <- standardise_path(file)
 
@@ -107,18 +131,22 @@ vroom <- function(file, delim = NULL, col_names = TRUE, col_types = NULL,
 
   col_select <- vroom_enquo(rlang::enquo(col_select))
 
-  out <- vroom_(file, delim = delim, col_names = col_names, col_types = col_types,
-    id = id, skip = skip, col_select = col_select,
+  has_spec <- !is.null(col_types)
+
+  col_types <- as.col_spec(col_types)
+
+  out <- vroom_(file, delim = delim %||% col_types$delim, col_names = col_names,
+    col_types = col_types, id = id, skip = skip, col_select = col_select,
     na = na, quote = quote, trim_ws = trim_ws, escape_double = escape_double,
     escape_backslash = escape_backslash, comment = comment, locale = locale,
-    guess_max = guess_max, n_max = n_max, altrep_opts = vroom_altrep_opts(altrep_opts),
+    guess_max = guess_max, n_max = n_max, altrep = vroom_altrep(altrep),
     num_threads = num_threads, progress = progress)
 
   out <- tibble::as_tibble(out, .name_repair = .name_repair)
 
-  out <- vroom_select(out, col_select)
+  out <- vroom_select(out, col_select, id)
 
-  if (is.null(col_types)) {
+  if (!has_spec) {
     show_spec_summary(out, locale = locale)
   }
 
@@ -166,8 +194,7 @@ vroom_progress <- function() {
 pb_file_format <- function(filename) {
 
   # Workaround RStudio bug https://github.com/rstudio/rstudio/issues/4777
-  # TODO: change this version number from 1.3 once it is in a patch release
-  withr::with_options(list(crayon.enabled = (!is_rstudio_console() || is_rstudio_version("1.2.1522", "1.3")) && getOption("crayon.enabled", TRUE)),
+  withr::with_options(list(crayon.enabled = (!is_rstudio_console() || is_rstudio_version("1.2.1578")) && getOption("crayon.enabled", TRUE)),
     glue::glue_col("{bold}indexing{reset} {blue}{basename(filename)}{reset} [:bar] {green}:rate{reset}, eta: {cyan}:eta{reset}")
   )
 }
@@ -178,50 +205,52 @@ pb_width <- function(format) {
 }
 
 pb_connection_format <- function(unused) {
-  withr::with_options(list(crayon.enabled = (!is_rstudio_console() || is_rstudio_version("1.2.1522", "1.3")) && getOption("crayon.enabled", TRUE)),
+  withr::with_options(list(crayon.enabled = (!is_rstudio_console() || is_rstudio_version("1.2.1578")) && getOption("crayon.enabled", TRUE)),
     glue::glue_col("{bold}indexed{reset} {green}:bytes{reset} in {cyan}:elapsed{reset}, {green}:rate{reset}")
   )
 }
 
 pb_write_format <- function(unused) {
-  withr::with_options(list(crayon.enabled = (!is_rstudio_console() || is_rstudio_version("1.2.1522", "1.3")) && getOption("crayon.enabled", TRUE)),
+  withr::with_options(list(crayon.enabled = (!is_rstudio_console() || is_rstudio_version("1.2.1578")) && getOption("crayon.enabled", TRUE)),
     glue::glue_col("{bold}wrote{reset} {green}:bytes{reset} in {cyan}:elapsed{reset}, {green}:rate{reset}")
   )
 }
 
 # Guess delimiter by splitting every line by each delimiter and choosing the
 # delimiter which splits the lines into the highest number of consistent fields
-guess_delim <- function(lines, delims = c(",", "\t", " ", "|", ":", ";", "\n")) {
+guess_delim <- function(lines, delims = c(",", "\t", " ", "|", ":", ";")) {
   if (length(lines) == 0) {
     return("")
   }
 
   # blank text within quotes
-  lines <- gsub('"[^"]+"', "", lines)
+  lines <- gsub('"[^"]*"', "", lines)
 
   splits <- lapply(delims, strsplit, x = lines, useBytes = TRUE, fixed = TRUE)
 
   counts <- lapply(splits, function(x) table(lengths(x)))
 
-  choose_best <- function(i, j) {
-    x <- counts[[i]]
-    y <- counts[[j]]
+  num_fields <- vapply(counts, function(x) as.integer(names(x)[[1]]), integer(1))
 
-    nx <- as.integer(names(counts[[i]]))
-    ny <- as.integer(names(counts[[j]]))
+  num_lines <- vapply(counts, function(x) (x)[[1]], integer(1))
 
-    mx <- which.max(x)
-    my <- which.max(y)
-
-    if (x[[mx]] > y[[my]] ||
-      x[[mx]] == y[[my]] && nx[[mx]] > ny[[my]]) {
-      i
-    } else {
-      j
+  top_lines <- 0
+  top_idx <- 0
+  for (i in seq_along(delims)) {
+    if (num_fields[[i]] >= 2 && num_lines[[i]] > top_lines ||
+      (top_lines == num_lines[[i]] && (top_idx <= 0 || num_fields[[top_idx]] < num_fields[[i]]))) {
+      top_lines <- num_lines[[i]]
+      top_idx <- i
     }
   }
-  res <- Reduce(choose_best, seq_along(counts))
-  delims[[res]]
+  if (top_idx == 0) {
+    stop(glue::glue('
+        Could not guess the delimiter.\n
+        {silver("Use `vroom(delim =)` to specify one explicitly.")}
+        '), call. = FALSE)
+  }
+
+  delims[[top_idx]]
 }
 
 cached <- new.env(emptyenv())
@@ -248,7 +277,7 @@ vroom_tempfile <- function() {
 
 #' Show which column types are using Altrep
 #'
-#' `vroom_altrep_opts()` can be used directly as input to the `altrep_opts`
+#' `vroom_altrep()` can be used directly as input to the `altrep`
 #' argument of [vroom()].
 #'
 #' Alternatively there is also a family of environment variables to control use of
@@ -267,6 +296,7 @@ vroom_tempfile <- function() {
 #' - `VROOM_USE_ALTREP_CHR`
 #' - `VROOM_USE_ALTREP_FCT`
 #' - `VROOM_USE_ALTREP_INT`
+#' - `VROOM_USE_ALTREP_BIG_INT`
 #' - `VROOM_USE_ALTREP_DBL`
 #' - `VROOM_USE_ALTREP_NUM`
 #' - `VROOM_USE_ALTREP_LGL`
@@ -278,22 +308,22 @@ vroom_tempfile <- function() {
 #'   take `TRUE` or `FALSE` to use Altrep for all possible or none of the
 #'   types
 #' @examples
-#' vroom_altrep_opts()
-#' vroom_altrep_opts(c("chr", "fct", "int"))
-#' vroom_altrep_opts(TRUE)
-#' vroom_altrep_opts(FALSE)
+#' vroom_altrep()
+#' vroom_altrep(c("chr", "fct", "int"))
+#' vroom_altrep(TRUE)
+#' vroom_altrep(FALSE)
 #' @export
-vroom_altrep_opts <- function(which = NULL) {
+vroom_altrep <- function(which = NULL) {
   if (!is.null(which)) {
     if (is.logical(which)) {
-      types <- names(altrep_opts_vals())
+      types <- names(altrep_vals())
       if (isTRUE(which)) {
         which <- as.list(stats::setNames(rep(TRUE, length(types)), types))
       } else {
         which <- as.list(stats::setNames(rep(FALSE, length(types)), types))
       }
     } else {
-      which <- match.arg(which, names(altrep_opts_vals()), several.ok = TRUE)
+      which <- match.arg(which, names(altrep_vals()), several.ok = TRUE)
       which <- as.list(stats::setNames(rep(TRUE, length(which)), which))
     }
   }
@@ -303,6 +333,7 @@ vroom_altrep_opts <- function(which = NULL) {
     getRversion() >= "3.5.0" && which$chr %||% vroom_use_altrep_chr(),
     getRversion() >= "3.5.0" && which$fct %||% vroom_use_altrep_fct(),
     getRversion() >= "3.5.0" && which$int %||% vroom_use_altrep_int(),
+    getRversion() >= "3.5.0" && which$int %||% vroom_use_altrep_big_int(),
     getRversion() >= "3.5.0" && which$dbl %||% vroom_use_altrep_dbl(),
     getRversion() >= "3.5.0" && which$num %||% vroom_use_altrep_num(),
     getRversion() >= "3.6.0" && which$lgl %||% vroom_use_altrep_lgl(), # logicals only supported in R 3.6.0+
@@ -315,10 +346,23 @@ vroom_altrep_opts <- function(which = NULL) {
   for (i in seq_along(args)) {
     out <- bitwOr(out, bitwShiftL(as.integer(args[[i]]), i - 1L))
   }
-  structure(out, class = "vroom_altrep_opts")
+  structure(out, class = "vroom_altrep")
 }
 
-altrep_opts_vals <- function() c(
+#' Show which column types are using Altrep
+#'
+#' @description
+#' \Sexpr[results=rd, stage=render]{lifecycle::badge("deprecated")}
+#' This function is deprecated in favor of `vroom_altrep()`.
+#'
+#' @inheritParams vroom_altrep
+#' @export
+vroom_altrep_opts <- function(which = NULL) {
+  deprecate_warn("1.1.0", "vroom_altrep_opts()", "vroom_altrep()")
+  vroom_altrep(which)
+}
+
+altrep_vals <- function() c(
   "none" = 0L,
   "chr" = 1L,
   "fct" = 2L,
@@ -328,12 +372,14 @@ altrep_opts_vals <- function() c(
   "lgl" = 32L,
   "dttm" = 64L,
   "date" = 128L,
-  "time" = 256L
+  "time" = 256L,
+# "skip" = 512L
+  "big_int" = 1024L
 )
 
 #' @export
-print.vroom_altrep_opts <- function(x, ...) {
-  vals <- altrep_opts_vals()
+print.vroom_altrep <- function(x, ...) {
+  vals <- altrep_vals()
   reps <- names(vals)[bitwAnd(vals, x) > 0]
 
   cat("Using Altrep representations for:\n",
@@ -353,6 +399,10 @@ vroom_use_altrep_fct <- function() {
 
 vroom_use_altrep_int <- function() {
   env_to_logical("VROOM_USE_ALTREP_NUMERICS", FALSE) || env_to_logical("VROOM_USE_ALTREP_INT", FALSE)
+}
+
+vroom_use_altrep_big_int <- function() {
+  env_to_logical("VROOM_USE_ALTREP_NUMERICS", FALSE) || env_to_logical("VROOM_USE_ALTREP_BIG_INT", FALSE)
 }
 
 vroom_use_altrep_dbl <- function() {

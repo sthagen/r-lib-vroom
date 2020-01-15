@@ -8,6 +8,7 @@
 #'
 #' * `col_logical()` \[l\], containing only `T`, `F`, `TRUE` or `FALSE`.
 #' * `col_integer()` \[i\], integers.
+#' * `col_big_integer()` \[I\], Big Integers (64bit), requires the `bit64` package.
 #' * `col_double()` \[d\], doubles.
 #' * `col_character()` \[c\], everything else.
 #' * `col_factor(levels, ordered)` \[f\], a fixed set of values.
@@ -26,6 +27,9 @@
 #'   object.
 #' @param .default Any named columns not explicitly overridden in `...`
 #'   will be read with this column type.
+#' @param .delim The delimiter to use when parsing. If the `delim` argument
+#'   used in the call to `vroom()` it takes precedence over the one specified in
+#'   `col_types`.
 #' @export
 #' @examples
 #' cols(a = col_integer())
@@ -48,7 +52,7 @@
 #' t3 <- t1
 #' t3$cols <- c(t1$cols, t2$cols)
 #' t3
-cols <- function(..., .default = col_guess()) {
+cols <- function(..., .default = col_guess(), .delim = NULL) {
   col_types <- rlang::list2(...)
   is_character <- vapply(col_types, is.character, logical(1))
   col_types[is_character] <- lapply(col_types[is_character], col_concise)
@@ -57,7 +61,7 @@ cols <- function(..., .default = col_guess()) {
     .default <- col_concise(.default)
   }
 
-  col_spec(col_types, .default)
+  col_spec(col_types, .default, .delim)
 }
 
 #' @export
@@ -69,7 +73,7 @@ cols_only <- function(...) {
 
 # col_spec ----------------------------------------------------------------
 
-col_spec <- function(col_types, default = col_guess()) {
+col_spec <- function(col_types, default = col_guess(), delim) {
   stopifnot(is.list(col_types))
   stopifnot(is.collector(default))
 
@@ -82,7 +86,8 @@ col_spec <- function(col_types, default = col_guess()) {
   structure(
     list(
       cols = col_types,
-      default = default
+      default = default,
+      delim = delim
     ),
     class = "col_spec"
   )
@@ -108,12 +113,12 @@ as.col_spec.character <- function(x) {
     return(as.col_spec(as.list(x)))
   }
   letters <- strsplit(x, "")[[1]]
-  col_spec(lapply(letters, col_concise), col_guess())
+  col_spec(lapply(letters, col_concise), col_guess(), delim = NULL)
 }
 
 #' @export
 as.col_spec.NULL <- function(x) {
-  col_spec(list())
+  col_spec(list(), delim = NULL)
 }
 
 #' @export
@@ -180,7 +185,14 @@ format.col_spec <- function(x, n = Inf, condense = NULL, colour = crayon::has_co
     default <- paste0(".default = col_", type, "()")
   }
 
-  cols_args <- c(default,
+  delim <- x$delim
+
+  if (!is.null(delim) && nzchar(delim)) {
+    delim <- paste0('.delim = ', double_quote(delim), '')
+  }
+
+  cols_args <- c(
+    default,
     vapply(seq_along(cols),
       function(i) {
         col_funs <- sub("^collector_", "col_", class(cols[[i]])[[1]])
@@ -203,7 +215,8 @@ format.col_spec <- function(x, n = Inf, condense = NULL, colour = crayon::has_co
         out
       },
       character(1)
-    )
+    ),
+    delim
   )
   if (length(x$cols) == 0 && length(cols_args) == 0) {
     return(paste0(fun_type, "()\n"))
@@ -295,6 +308,7 @@ col_concise <- function(x) {
     f = col_factor(),
     d = col_double(),
     i = col_integer(),
+    I = col_big_integer(),
     l = col_logical(),
     n = col_number(),
     D = col_date(),
@@ -311,13 +325,13 @@ vroom_enquo <- function(x) {
   x
 }
 
-vroom_select <- function(x, col_select) {
+vroom_select <- function(x, col_select, id) {
   # reorder and rename columns
   if (inherits(col_select, "quosures") || !rlang::quo_is_null(col_select)) {
     if (inherits(col_select, "quosures")) {
-      vars <- tidyselect::vars_select(names(spec(x)$cols), !!!col_select)
+      vars <- tidyselect::vars_select(c(id, names(spec(x)$cols)), !!!col_select)
     } else {
-      vars <- tidyselect::vars_select(names(spec(x)$cols), !!col_select)
+      vars <- tidyselect::vars_select(c(id, names(spec(x)$cols)), !!col_select)
     }
     # This can't be just names(x) as we need to have skipped
     # names as well to pass to vars_select()
@@ -327,8 +341,7 @@ vroom_select <- function(x, col_select) {
   x
 }
 
-col_types_standardise <- function(col_types, col_names, col_select) {
-  spec <- as.col_spec(col_types)
+col_types_standardise <- function(spec, col_names, col_select) {
   type_names <- names(spec$cols)
 
   if (length(spec$cols) == 0) {
@@ -367,9 +380,9 @@ col_types_standardise <- function(col_types, col_names, col_select) {
 
   if (inherits(col_select, "quosures") || !rlang::quo_is_null(col_select)) {
     if (inherits(col_select, "quosures")) {
-      to_keep <- names(spec$cols) %in% tidyselect::vars_select(names(spec$cols), !!!col_select)
+      to_keep <- names(spec$cols) %in% tidyselect::vars_select(names(spec$cols), !!!col_select, .strict = FALSE)
     } else {
-      to_keep <- names(spec$cols) %in% tidyselect::vars_select(names(spec$cols), !!col_select)
+      to_keep <- names(spec$cols) %in% tidyselect::vars_select(names(spec$cols), !!col_select, .strict = FALSE)
     }
 
     spec$cols[!to_keep] <- rep(list(col_skip()), sum(!to_keep))
@@ -399,18 +412,16 @@ col_types_standardise <- function(col_types, col_names, col_select) {
 #'  guess_type(c("01:02:03 AM"))
 #' @export
 guess_type <- function(x, na = c("", "NA"), locale = default_locale(), guess_integer = FALSE) {
-
-  x[x %in% na] <- NA
-
-  type <- guess_type_(x, locale = locale, guess_integer = guess_integer)
+  type <- guess_type_(x, na = na, locale = locale, guess_integer = guess_integer)
   get(paste0("col_", type), asNamespace("vroom"))()
 }
 
-guess_parser <- function(x, locale = default_locale(), guess_integer = FALSE) {
-  guess_type_(x, locale = locale, guess_integer = guess_integer)
+guess_parser <- function(x, na = c("", "NA"), locale = default_locale(), guess_integer = FALSE) {
+  guess_type_(x, na = na, locale = locale, guess_integer = guess_integer)
 }
 
 #' @importFrom crayon silver
+#' @importFrom glue double_quote
 show_spec_summary <- function(x, width = getOption("width"), locale = default_locale()) {
   spec <- spec(x)
   if (length(spec$cols) == 0) {
@@ -437,6 +448,8 @@ show_spec_summary <- function(x, width = getOption("width"), locale = default_lo
     prettyNum(x, big.mark = locale$grouping_mark, decimal.mark = locale$decimal_mark)
   }
 
+  delim <- spec$delim %||% ""
+
   message(
     glue::glue(
       .transformer = collapse_transformer(sep = "\n"),
@@ -444,11 +457,12 @@ show_spec_summary <- function(x, width = getOption("width"), locale = default_lo
 
       '
       {bold("Rows:")} {fmt_num(NROW(x))}
-      {bold("Cols:")} {fmt_num(NCOL(x))}
+      {bold("Columns:")} {fmt_num(NCOL(x))}
+      {if (nzchar(delim)) paste(bold("Delimiter:"), double_quote(delim)) else ""}
       {entries*}
 
-      {silver("Call `spec()` for a copy-pastable column specification")}
-      {silver("Specify the column types with `col_types` to quiet this message")}
+      {silver("Use `spec()` to retrieve the guessed column specification")}
+      {silver("Pass a specification to the `col_types` argument to quiet this message")}
       '
     )
   )
@@ -480,6 +494,12 @@ col_logical <- function(...) {
 #' @export
 col_integer <- function(...) {
   collector("integer", ...)
+}
+
+#' @rdname cols
+#' @export
+col_big_integer <- function(...) {
+  collector("big_integer", ...)
 }
 
 #' @rdname cols

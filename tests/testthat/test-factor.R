@@ -114,15 +114,25 @@ test_that("encodings are respected", {
   loc <- locale(encoding = "ISO-8859-1")
   expected <- c("fran\u00e7ais", "\u00e9l\u00e8ve")
 
-  x <- vroom(test_path("enc-iso-8859-1.txt"), locale = loc, col_types = c(X1 = "f"), col_names = FALSE)
+  x <- vroom(test_path("enc-iso-8859-1.txt"), delim = "\n", locale = loc, col_types = c(X1 = "f"), col_names = FALSE)
   expect_equal(x[[1]], factor(expected, levels = expected))
 
   y <- vroom(
     test_path("enc-iso-8859-1.txt"),
+    delim = "\n",
     locale = loc,
     col_types = list(X1 = col_factor(levels = expected)),
     col_names = FALSE
   )
 
   expect_equal(y[[1]], factor(expected, levels = expected))
+})
+
+test_that("Results are correct with backslash escapes", {
+  obj <- vroom("A,T\nB,F\n", col_names = FALSE, col_types = list("f", "f"), escape_backslash = TRUE)
+  exp <- tibble::tibble(X1 = factor(c("A", "B")), X2 = factor(c("T", "F"), levels = c("T", "F")))
+  expect_equal(obj, exp)
+
+  obj2 <- vroom("A,T\nB,F\n", col_names = FALSE, col_types = list("f", "f"), escape_backslash = FALSE)
+  expect_equal(obj2, exp)
 })

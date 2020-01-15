@@ -2,6 +2,7 @@
 
 #include "Rcpp.h"
 #include "vroom.h"
+#include "vroom_big_int.h"
 #include "vroom_chr.h"
 #include "vroom_date.h"
 #include "vroom_dbl.h"
@@ -78,7 +79,7 @@ inline List create_columns(
     std::vector<std::string>& filenames,
     CharacterVector na,
     List locale,
-    size_t altrep_opts,
+    size_t altrep,
     size_t guess_max,
     size_t num_threads) {
 
@@ -110,7 +111,7 @@ inline List create_columns(
       na,
       locale_info,
       guess_max,
-      altrep_opts);
+      altrep);
 
   size_t to_parse = 0;
   for (size_t col = 0; col < num_cols; ++col) {
@@ -156,6 +157,16 @@ inline List create_columns(
 #endif
       } else {
         res[i] = read_int(info);
+        delete info;
+      }
+      break;
+    case column_type::BigInt:
+      if (collector.use_altrep()) {
+#ifdef HAS_ALTREP
+        res[i] = vroom_big_int::Make(info);
+#endif
+      } else {
+        res[i] = read_big_int(info);
         delete info;
       }
       break;
@@ -250,7 +261,10 @@ inline List create_columns(
   }
 
   res.attr("names") = res_nms;
-  res.attr("spec") = my_collectors.spec();
+  Rcpp::List spec = my_collectors.spec();
+  spec["delim"] = idx->get_delim();
+  spec.attr("class") = "col_spec";
+  res.attr("spec") = spec;
 
   return res;
 }
