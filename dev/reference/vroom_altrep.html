@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Convert a data frame to a delimited string — vroom_format • vroom</title>
+<title>Show which column types are using Altrep — vroom_altrep • vroom</title>
 
 <!-- favicons -->
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
@@ -42,10 +42,9 @@
 
 
 
-<meta property="og:title" content="Convert a data frame to a delimited string — vroom_format" />
-<meta property="og:description" content="This is equivalent to vroom_write(), but instead of writing to
-disk, it returns a string. It is primarily useful for examples and for
-testing." />
+<meta property="og:title" content="Show which column types are using Altrep — vroom_altrep" />
+<meta property="og:description" content="vroom_altrep() can be used directly as input to the altrep
+argument of vroom()." />
 <meta property="og:image" content="https://vroom.r-lib.org/logo.png" />
 
 
@@ -147,87 +146,80 @@ testing." />
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Convert a data frame to a delimited string</h1>
-    <small class="dont-index">Source: <a href='https://github.com/r-lib/vroom/blob/master/R/vroom_write.R'><code>R/vroom_write.R</code></a></small>
-    <div class="hidden name"><code>vroom_format.Rd</code></div>
+    <h1>Show which column types are using Altrep</h1>
+    <small class="dont-index">Source: <a href='https://github.com/r-lib/vroom/blob/master/R/vroom.R'><code>R/vroom.R</code></a></small>
+    <div class="hidden name"><code>vroom_altrep.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>This is equivalent to <code><a href='vroom_write.html'>vroom_write()</a></code>, but instead of writing to
-disk, it returns a string. It is primarily useful for examples and for
-testing.</p>
+    <p><code>vroom_altrep()</code> can be used directly as input to the <code>altrep</code>
+argument of <code><a href='vroom.html'>vroom()</a></code>.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>vroom_format</span>(
-  <span class='no'>x</span>,
-  <span class='kw'>delim</span> <span class='kw'>=</span> <span class='st'>"\t"</span>,
-  <span class='kw'>na</span> <span class='kw'>=</span> <span class='st'>"NA"</span>,
-  <span class='kw'>col_names</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>,
-  <span class='kw'>escape</span> <span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span>(<span class='st'>"double"</span>, <span class='st'>"backslash"</span>, <span class='st'>"none"</span>),
-  <span class='kw'>quote</span> <span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span>(<span class='st'>"needed"</span>, <span class='st'>"all"</span>, <span class='st'>"none"</span>),
-  <span class='kw'>bom</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>
-)</pre>
+    <pre class="usage"><span class='fu'>vroom_altrep</span>(<span class='kw'>which</span> <span class='kw'>=</span> <span class='kw'>NULL</span>)</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>x</th>
-      <td><p>A data frame to write to disk</p></td>
-    </tr>
-    <tr>
-      <th>delim</th>
-      <td><p>Delimiter used to separate values. Defaults to <code>\t</code> to write
-tab separated value (TSV) files.</p></td>
-    </tr>
-    <tr>
-      <th>na</th>
-      <td><p>String used for missing values. Defaults to 'NA'.</p></td>
-    </tr>
-    <tr>
-      <th>col_names</th>
-      <td><p>Either <code>TRUE</code>, <code>FALSE</code> or a character vector
-of column names.</p>
-<p>If <code>TRUE</code>, the first row of the input will be used as the column
-names, and will not be included in the data frame. If <code>FALSE</code>, column
-names will be generated automatically: X1, X2, X3 etc.</p>
-<p>If <code>col_names</code> is a character vector, the values will be used as the
-names of the columns, and the first row of the input will be read into
-the first row of the output data frame.</p>
-<p>Missing (<code>NA</code>) column names will generate a warning, and be filled
-in with dummy names <code>X1</code>, <code>X2</code> etc. Duplicate column names
-will generate a warning and be made unique with a numeric prefix.</p></td>
-    </tr>
-    <tr>
-      <th>escape</th>
-      <td><p>The type of escape to use when quotes are in the data.</p><ul>
-<li><p><code>double</code> - quotes are escaped by doubling them.</p></li>
-<li><p><code>backslash</code> - quotes are escaped by a preceding backslash.</p></li>
-<li><p><code>none</code> - quotes are not escaped.</p></li>
-</ul></td>
-    </tr>
-    <tr>
-      <th>quote</th>
-      <td><p>How to handle fields which contain characters that need to be quoted.</p><ul>
-<li><p><code>needed</code> - Only quote fields which need them.</p></li>
-<li><p><code>all</code> - Quote all fields.</p></li>
-<li><p><code>none</code> - Never quote fields.</p></li>
-</ul></td>
-    </tr>
-    <tr>
-      <th>bom</th>
-      <td><p>If <code>TRUE</code> add a UTF-8 BOM at the beginning of the file. This is
-recommended when saving data for consumption by excel, as it will force
-excel to read the data with the correct encoding (UTF-8)</p></td>
+      <th>which</th>
+      <td><p>A character vector of column types to use Altrep for. Can also
+take <code>TRUE</code> or <code>FALSE</code> to use Altrep for all possible or none of the
+types</p></td>
     </tr>
     </table>
 
+    <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
+    <p>Alternatively there is also a family of environment variables to control use of
+the Altrep framework. These can then be set in your <code>.Renviron</code> file, e.g.
+with <code>usethis::edit_r_environ()</code>. For versions of R where the Altrep
+framework is unavailable (R &lt; 3.5.0) they are automatically turned off and
+the variables have no effect. The variables can take one of <code>true</code>, <code>false</code>,
+<code>TRUE</code>, <code>FALSE</code>, <code>1</code>, or <code>0</code>.</p><ul>
+<li><p><code>VROOM_USE_ALTREP_NUMERICS</code> - If set use Altrep for <em>all</em> numeric types
+(default <code>false</code>).</p></li>
+</ul>
+
+<p>There are also individual variables for each type. Currently only
+<code>VROOM_USE_ALTREP_CHR</code> defaults to <code>true</code>.</p><ul>
+<li><p><code>VROOM_USE_ALTREP_CHR</code></p></li>
+<li><p><code>VROOM_USE_ALTREP_FCT</code></p></li>
+<li><p><code>VROOM_USE_ALTREP_INT</code></p></li>
+<li><p><code>VROOM_USE_ALTREP_BIG_INT</code></p></li>
+<li><p><code>VROOM_USE_ALTREP_DBL</code></p></li>
+<li><p><code>VROOM_USE_ALTREP_NUM</code></p></li>
+<li><p><code>VROOM_USE_ALTREP_LGL</code></p></li>
+<li><p><code>VROOM_USE_ALTREP_DTTM</code></p></li>
+<li><p><code>VROOM_USE_ALTREP_DATE</code></p></li>
+<li><p><code>VROOM_USE_ALTREP_TIME</code></p></li>
+</ul>
+
+
+    <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
+    <pre class="examples"><div class='input'><span class='fu'>vroom_altrep</span>()</div><div class='output co'>#&gt; Using Altrep representations for:
+#&gt;  * chr</div><div class='input'><span class='fu'>vroom_altrep</span>(<span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span>(<span class='st'>"chr"</span>, <span class='st'>"fct"</span>, <span class='st'>"int"</span>))</div><div class='output co'>#&gt; Using Altrep representations for:
+#&gt;  * chr
+#&gt;  * fct
+#&gt;  * int
+#&gt;  * dbl</div><div class='input'><span class='fu'>vroom_altrep</span>(<span class='fl'>TRUE</span>)</div><div class='output co'>#&gt; Using Altrep representations for:
+#&gt;  * chr
+#&gt;  * fct
+#&gt;  * int
+#&gt;  * dbl
+#&gt;  * num
+#&gt;  * lgl
+#&gt;  * dttm
+#&gt;  * date
+#&gt;  * time</div><div class='input'><span class='fu'>vroom_altrep</span>(<span class='fl'>FALSE</span>)</div><div class='output co'>#&gt; Using Altrep representations for:
+#&gt; </div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <h2>Contents</h2>
     <ul class="nav nav-pills nav-stacked">
       <li><a href="#arguments">Arguments</a></li>
+      <li><a href="#details">Details</a></li>
+      <li><a href="#examples">Examples</a></li>
     </ul>
 
   </div>
