@@ -1,5 +1,3 @@
-context("test-datetime")
-
 test_that("datetime parsing works", {
   test_vroom(
 "date,time,datetime
@@ -10,7 +8,7 @@ test_that("datetime parsing works", {
     equals = tibble::tibble(
       date = c(as.Date("2018-01-01"), as.Date("2019-01-01")),
       time = c(hms::hms(1, 1, 10), hms::hms(3, 4, 5)),
-      datetime = c(as.POSIXct("2018-01-01 10:01:01", tz = "UTC"), as.POSIXct("2019-01-01 05:04:03", tz = "UTC"))
+      datetime = vctrs::vec_c(as.POSIXct("2018-01-01 10:01:01", tz = "UTC"), as.POSIXct("2019-01-01 05:04:03", tz = "UTC"))
     )
   )
 })
@@ -58,23 +56,23 @@ test_that("%Y requires 4 digits", {
 })
 
 test_that("invalid dates return NA", {
-  test_parse_datetime("2010-02-30", "%Y-%m-%d", expected = NA)
+  test_parse_datetime("2010-02-30", "%Y-%m-%d", expected = .POSIXct(NA_real_, tz = "UTC"))
 })
 
 test_that("failed parsing returns NA", {
   test_parse_datetime(c("2010-02-ab", "2010-02", "2010/02/01"), "%Y-%m-%d",
-    expected = rep(NA, 3)
+    expected = .POSIXct(rep(NA_real_, 3), tz = "UTC")
   )
 })
 
 test_that("invalid specs returns NA", {
-  test_parse_datetime("2010-02-20", "%Y-%m-%m", expected = NA)
+  test_parse_datetime("2010-02-20", "%Y-%m-%m", expected = .POSIXct(NA_real_, tz = "UTC"))
 })
 
 test_that("ISO8601 partial dates are not parsed", {
-  test_parse_datetime("20", "", expected = NA)
-  test_parse_datetime("2001", "", expected = NA)
-  test_parse_datetime("2001-01", "", expected = NA)
+  test_parse_datetime("20", "", expected = .POSIXct(NA_real_, tz = "UTC"))
+  test_parse_datetime("2001", "", expected = .POSIXct(NA_real_, tz = "UTC"))
+  test_parse_datetime("2001-01", "", expected = .POSIXct(NA_real_, tz = "UTC"))
 })
 
 test_that("Year only gets parsed", {
@@ -101,7 +99,7 @@ test_that("%p detects AM/PM", {
     expected = .POSIXct(694141260, "UTC"))
 
   test_parse_datetime(c("12/31/1991 00:01 PM", "12/31/1991 13:01 PM"),
-      "%m/%d/%Y %I:%M %p", expected = rep(NA, 2))
+      "%m/%d/%Y %I:%M %p", expected = .POSIXct(rep(NA_real_, 2), tz = "UTC"))
 })
 
 test_that("%b and %B are case insensitive", {
@@ -136,7 +134,7 @@ test_that("parse_date returns a double like as.Date()", {
 test_that("parses NA/empty correctly", {
   expect_equal(
     vroom("x\n\n", delim = ",", col_types = list(x = "T")),
-    tibble::tibble(x = .POSIXct(NA_real_))
+    tibble::tibble(x = .POSIXct(NA_real_, tz = "UTC"))
   )
 
   expect_equal(
@@ -144,7 +142,7 @@ test_that("parses NA/empty correctly", {
     tibble::tibble(x = as.Date(NA))
   )
 
-  test_parse_datetime("TeSt", "", na = "TeSt", expected = .POSIXct(NA_real_))
+  test_parse_datetime("TeSt", "", na = "TeSt", expected = .POSIXct(NA_real_, tz = "UTC"))
   test_parse_date("TeSt", "", na = "TeSt", expected = as.Date(NA))
 })
 
@@ -160,7 +158,7 @@ test_that("locale affects months", {
 
 test_that("locale affects day of week", {
   a <- as.POSIXct("2010-01-01", tz = "UTC")
-  b <- as.Date("2010-01-01")
+  b <- .POSIXct(unclass(as.Date("2010-01-01")) * 86400, tz = "UTC")
   fr <- locale("fr")
 
   test_parse_datetime("Ven. 1 janv. 2010", "%a %d %b %Y", locale=fr, expected = a)
@@ -169,6 +167,8 @@ test_that("locale affects day of week", {
 
 test_that("locale affects am/pm", {
   skip_on_os("windows")
+  skip_on_os("solaris")
+  skip_if_not(l10n_info()$`UTF-8`)
 
   expected <- hms::hms(hours = 13, minutes = 30)
   test_parse_time("01:30 PM", "%H:%M %p", expected = expected)
@@ -215,23 +215,33 @@ test_that("unambiguous times with and without daylight savings", {
 ## Guessing ---------------------------------------------------------------------
 
 test_that("DDDD-DD not parsed as date (i.e. doesn't trigger partial date match)", {
-  expect_is(vroom("1989-90\n1990-91\n", delim = "\n")[[1]], "character")
+  expect_type(vroom("1989-90\n1990-91\n", delim = "\n", col_types = list())[[1]], "character")
 })
 
 test_that("leading zeros don't get parsed as date without explicit separator", {
-  expect_is(vroom("00010203\n", col_names = FALSE, delim = "\n")[[1]], "character")
-  expect_is(vroom("0001-02-03\n", col_names = FALSE, delim = "\n")[[1]], "Date")
+  expect_type(vroom("00010203\n", col_names = FALSE, delim = "\n", col_types = list())[[1]], "character")
+  expect_s3_class(vroom("0001-02-03\n", col_names = FALSE, delim = "\n", col_types = list())[[1]], "Date")
 })
 
 test_that("must have either two - or none", {
-  expect_is(vroom("2000-10-10\n", col_names = FALSE, delim = "\n")[[1]], "Date")
-  expect_is(vroom("2000-1010\n", col_names = FALSE, delim = "\n")[[1]], "character")
-  expect_is(vroom("200010-10\n", col_names = FALSE, delim = "\n")[[1]], "character")
-  expect_is(vroom("20001010\n", col_names = FALSE, delim = "\n")[[1]], "numeric")
+  expect_s3_class(vroom("2000-10-10\n", col_names = FALSE, delim = "\n", col_types = list())[[1]], "Date")
+  expect_type(vroom("2000-1010\n", col_names = FALSE, delim = "\n", col_types = list())[[1]], "character")
+  expect_type(vroom("200010-10\n", col_names = FALSE, delim = "\n", col_types = list())[[1]], "character")
+  expect_type(vroom("20001010\n", col_names = FALSE, delim = "\n", col_types = list())[[1]], "double")
 })
 
 test_that("times are guessed even without AM / PM", {
-  expect_is(guess_type("01:02:03"), "collector_time")
-  expect_is(guess_type("01:02:03 AM"), "collector_time")
-  expect_is(guess_type("01:02:03 PM"), "collector_time")
+  expect_s3_class(guess_type("01:02:03"), "collector_time")
+  expect_s3_class(guess_type("01:02:03 AM"), "collector_time")
+  expect_s3_class(guess_type("01:02:03 PM"), "collector_time")
+})
+
+test_that("subsetting works with both double and integer indexes", {
+  x <- vroom("X1\n2020-01-01 01:01:01", delim = ",", col_type = "T")
+  dt <- as.POSIXct("2020-01-01 01:01:01", tz = "UTC")
+  na_dt <- .POSIXct(NA_real_, tz = "UTC")
+  expect_equal(x$X1[1L], dt)
+  expect_equal(x$X1[1], dt)
+  expect_equal(x$X1[NA_integer_], na_dt)
+  expect_equal(x$X1[NA_real_], na_dt)
 })

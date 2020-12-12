@@ -1,6 +1,6 @@
 Package: vroom
 Title: Read and Write Rectangular Text Data Quickly
-Version: 1.2.0.9000
+Version: 1.3.2.9000
 Authors@R: 
     c(person(given = "Jim",
              family = "Hester",
@@ -44,9 +44,10 @@ Imports:
     glue,
     hms,
     lifecycle,
-    Rcpp (>= 0.12.18.3),
     rlang (>= 0.4.2),
+    stats,
     tibble (>= 2.0.0),
+    vctrs (>= 0.2.0),
     tidyselect,
     withr
 Suggests: 
@@ -68,16 +69,19 @@ Suggests:
     spelling,
     testthat (>= 2.1.0),
     tidyr,
+    waldo,
     xml2
 LinkingTo: 
     progress (>= 1.2.1),
-    Rcpp
+    cpp11 (>= 0.2.0)
 VignetteBuilder: 
     knitr
+Config/testthat/edition: 3
+Config/testthat/parallel: true
 Copyright: file COPYRIGHTS
 Encoding: UTF-8
 Language: en-US
 LazyData: true
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.0.2
+RoxygenNote: 7.1.1
 SystemRequirements: C++11

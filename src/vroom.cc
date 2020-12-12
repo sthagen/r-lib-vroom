@@ -1,21 +1,22 @@
 #include <mio/shared_mmap.hpp>
 
+#include <cpp11/R.hpp>
+#include <cpp11/list.hpp>
+#include <cpp11/strings.hpp>
+
 #include "LocaleInfo.h"
 #include "columns.h"
 #include "connection.h"
 #include "index.h"
 #include "index_collection.h"
 #include "vroom_rle.h"
-#include <Rcpp.h>
 #include <algorithm>
+#include <numeric>
 
 #include "unicode_fopen.h"
 
-using namespace Rcpp;
-
-// [[Rcpp::export]]
-SEXP vroom_(
-    List inputs,
+[[cpp11::register]] SEXP vroom_(
+    cpp11::list inputs,
     SEXP delim,
     const char quote,
     bool trim_ws,
@@ -25,20 +26,19 @@ SEXP vroom_(
     size_t skip,
     ptrdiff_t n_max,
     bool progress,
-    RObject col_names,
-    RObject col_types,
-    RObject col_select,
+    cpp11::sexp col_names,
+    cpp11::sexp col_types,
+    cpp11::sexp col_select,
+    cpp11::sexp name_repair,
     SEXP id,
-    CharacterVector na,
-    List locale,
+    cpp11::strings na,
+    cpp11::list locale,
     ptrdiff_t guess_max,
     size_t num_threads,
     size_t altrep) {
 
-  Rcpp::CharacterVector tempfile;
-
   bool has_header =
-      col_names.sexp_type() == LGLSXP && as<LogicalVector>(col_names)[0];
+      TYPEOF(col_names) == LGLSXP && cpp11::logicals(col_names)[0];
 
   std::vector<std::string> filenames;
 
@@ -52,7 +52,7 @@ SEXP vroom_(
 
   auto idx = std::make_shared<vroom::index_collection>(
       inputs,
-      Rf_isNull(delim) ? nullptr : Rcpp::as<const char*>(delim),
+      Rf_isNull(delim) ? nullptr : cpp11::as_cpp<const char*>(delim),
       quote,
       trim_ws,
       escape_double,
@@ -69,6 +69,7 @@ SEXP vroom_(
       col_names,
       col_types,
       col_select,
+      name_repair,
       id,
       filenames,
       na,
@@ -78,8 +79,7 @@ SEXP vroom_(
       num_threads);
 }
 
-// [[Rcpp::export]]
-bool has_trailing_newline(CharacterVector filename) {
+[[cpp11::register]] bool has_trailing_newline(cpp11::strings filename) {
   std::FILE* f = unicode_fopen(CHAR(filename[0]), "rb");
 
   if (!f) {
@@ -96,14 +96,13 @@ bool has_trailing_newline(CharacterVector filename) {
   return c == '\n';
 }
 
-// [[Rcpp::export]]
-SEXP vroom_rle(Rcpp::IntegerVector input) {
+[[cpp11::register]] SEXP vroom_rle(cpp11::integers input) {
 #ifdef HAS_ALTREP
   return vroom_rle::Make(input);
 #else
   R_xlen_t total_size = std::accumulate(input.begin(), input.end(), 0);
-  CharacterVector out(total_size);
-  CharacterVector nms = input.names();
+  cpp11::writable::strings out(total_size);
+  cpp11::strings nms = input.names();
   R_xlen_t idx = 0;
   for (R_xlen_t i = 0; i < Rf_xlength(input); ++i) {
     for (R_xlen_t j = 0; j < input[i]; ++j) {

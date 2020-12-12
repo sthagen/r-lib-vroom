@@ -56,9 +56,10 @@ vroom_fwf <- function(file,
 
   col_types <- as.col_spec(col_types)
 
-  out <- vroom_fwf_(file, col_positions$begin, col_positions$end,
+  out <- vroom_fwf_(file, as.integer(col_positions$begin), as.integer(col_positions$end),
     trim_ws = trim_ws, col_names = col_positions$col_names,
     col_types = col_types, col_select = col_select,
+    name_repair = .name_repair,
     id = id, na = na, guess_max = guess_max, skip = skip, comment = comment,
     n_max = n_max, num_threads = num_threads,
     altrep = vroom_altrep(altrep), locale = locale,
@@ -158,7 +159,7 @@ fwf_col_names <- function(nm, n) {
 }
 
 verify_fwf_positions <- function(col_positions) {
-  is_greater <- na.omit(col_positions$begin > col_positions$end)
+  is_greater <- stats::na.omit(col_positions$begin > col_positions$end)
   if (any(is_greater)) {
     bad <- which(is_greater)
     stop("`col_positions` must have begin less than end.\n* Invalid values at position(s): ", paste0(collapse = ", ", bad), call. = FALSE)

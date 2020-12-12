@@ -63,7 +63,7 @@ public:
       // libstdc++ (https://stackoverflow.com/a/54316671/2055486), so just print
       // the message on stderr return
 #ifndef VROOM_STANDALONE
-      Rcpp::Rcerr << "mapping error: " << error.message() << '\n';
+      REprintf("mapping error: %s\n", error.message().c_str());
 #else
       std::cerr << "mapping error: " << error.message() << '\n';
 #endif
@@ -222,7 +222,7 @@ public:
     return lines_read;
   }
 
-  std::shared_ptr<vroom::index::row> get_row(size_t row) const {
+  std::shared_ptr<vroom::index::row> get_row(size_t) const {
     // TODO: UNUSED
     return nullptr;
   }

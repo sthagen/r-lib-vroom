@@ -1,5 +1,3 @@
-context("test-factor")
-
 test_that("strings mapped to levels", {
   test_vroom("a\nb\n", col_names = FALSE,
     col_types = list(X1 = col_factor(levels = c("a", "b"))),
@@ -69,7 +67,7 @@ test_that("NAs included in levels if desired", {
 
   test_vroom("NA\nb\na\n", col_names = FALSE,
     col_types = list(X1 = col_factor(levels = NULL, include_na = TRUE)),
-    equals = tibble::tibble(X1 = factor(c(NA, "b", "a"), levels = c("b", "a", NA), exclude = NULL))
+    equals = tibble::tibble(X1 = factor(c(NA, "b", "a"), levels = c(NA, "b", "a"), exclude = NULL))
   )
 })
 
@@ -135,4 +133,13 @@ test_that("Results are correct with backslash escapes", {
 
   obj2 <- vroom("A,T\nB,F\n", col_names = FALSE, col_types = list("f", "f"), escape_backslash = FALSE)
   expect_equal(obj2, exp)
+})
+
+
+test_that("subsetting works with both double and integer indexes", {
+  x <- vroom("X1\nfoo", delim = ",", col_types = "f")
+  expect_equal(x$X1[1L], factor("foo"))
+  expect_equal(x$X1[1], factor("foo"))
+  expect_equal(x$X1[NA_integer_], factor(NA_character_, levels = "foo"))
+  expect_equal(x$X1[NA_real_], factor(NA_character_, levels = "foo"))
 })

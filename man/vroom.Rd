@@ -47,7 +47,7 @@ the first row of the output data frame.
 
 Missing (\code{NA}) column names will generate a warning, and be filled
 in with dummy names \code{X1}, \code{X2} etc. Duplicate column names
-will generate a warning and be made unique with a numeric prefix.}
+will generate a warning and be made unique with a numeric suffix.}
 
 \item{col_types}{One of \code{NULL}, a \code{\link[readr:cols]{cols()}} specification, or
 a string. See \code{vignette("readr")} for more details.
@@ -58,13 +58,27 @@ imputation fails, you'll need to supply the correct types yourself.
 
 If a column specification created by \code{\link[readr:cols]{cols()}}, it must contain
 one column specification for each column. If you only want to read a
-subset of the columns, use \code{\link[readr:cols_only]{cols_only()}}.
+subset of the columns, use \code{\link[readr:cols]{cols_only()}}.
 
 Alternatively, you can use a compact string representation where each
 character represents one column:
-c = character, i = integer, n = number, d = double,
-l = logical, f = factor, D = date, T = date time, t = time, ? = guess, or
-\code{_}/\code{-} to skip the column.}
+\itemize{
+\item c = character
+\item i = integer
+\item n = number
+\item d = double
+\item l = logical
+\item f = factor
+\item D = date
+\item T = date time
+\item t = time
+\item ? = guess
+\item _ or - = skip
+
+By default, reading a file without a column specification will print a
+message showing what \code{readr} guessed they were. To remove this message,
+use \code{col_types = cols()}.
+}}
 
 \item{col_select}{One or more selection expressions, like in
 \code{dplyr::select()}. Use \code{c()} or \code{list()} to use more than one expression.
@@ -96,7 +110,7 @@ a single quote, '"'.}
 \item{escape_backslash}{Does the file use backslashes to escape special
 characters? This is more general than \code{escape_double} as backslashes
 can be used to escape the delimiter character, the quote character, or
-to add special characters like \code{\\n}.}
+to add special characters like \verb{\\\\n}.}
 
 \item{locale}{The locale controls defaults that vary from place to place.
 The default locale is US-centric (like R), but you can use
@@ -131,8 +145,9 @@ name repair functions.}
 Read a delimited file into a tibble
 }
 \examples{
-# Show path to example file
+# get path to example file
 input_file <- vroom_example("mtcars.csv")
+input_file
 
 # Read from a path
 
@@ -177,4 +192,11 @@ vroom("a,b\n1.0,2.0\n", delim = ",")
 vroom("a\tb\n1.0\t2.0\n")
 # Other delimiters
 vroom("a|b\n1.0|2.0\n", delim = "|")
+
+# Read datasets across multiple files ---------------------------------------
+mtcars_by_cyl <- vroom_example(vroom_examples("mtcars-"))
+mtcars_by_cyl
+
+# Pass the filenames directly to vroom, they are efficiently combined
+vroom(mtcars_by_cyl)
 }

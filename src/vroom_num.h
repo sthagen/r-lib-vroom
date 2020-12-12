@@ -1,9 +1,10 @@
 #pragma once
 
+#include <cpp11/doubles.hpp>
+
 #include "altrep.h"
 
 #include "vroom_vec.h"
-#include <Rcpp.h>
 
 #include "parallel.h"
 
@@ -11,7 +12,7 @@ using namespace vroom;
 
 double parse_num(const string& str, const LocaleInfo& loc, bool strict = false);
 
-Rcpp::NumericVector read_num(vroom_vec_info* info);
+cpp11::doubles read_num(vroom_vec_info* info);
 
 #ifdef HAS_ALTREP
 
@@ -39,12 +40,8 @@ public:
   // ALTREP methods -------------------
 
   // What gets printed when .Internal(inspect()) is used
-  static Rboolean Inspect(
-      SEXP x,
-      int pre,
-      int deep,
-      int pvec,
-      void (*inspect_subtree)(SEXP, int, int, int)) {
+  static Rboolean
+  Inspect(SEXP x, int, int, int, void (*)(SEXP, int, int, int)) {
     Rprintf(
         "vroom_num (len=%d, materialized=%s)\n",
         Length(x),
@@ -83,7 +80,7 @@ public:
     return out;
   }
 
-  static void* Dataptr(SEXP vec, Rboolean writeable) {
+  static void* Dataptr(SEXP vec, Rboolean) {
     return STDVEC_DATAPTR(Materialize(vec));
   }
 
@@ -106,6 +103,5 @@ public:
 };
 #endif
 
-// Called the package is loaded (needs Rcpp 0.12.18.3)
-// [[Rcpp::init]]
-void init_vroom_num(DllInfo* dll);
+// Called the package is loaded
+[[cpp11::init]] void init_vroom_num(DllInfo* dll);
