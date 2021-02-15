@@ -92,7 +92,7 @@ testing." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">vroom</a>
-        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="In-development version">1.2.0.9000</span>
+        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="In-development version">1.4.0.9000</span>
       </span>
     </div>
 
@@ -134,7 +134,7 @@ testing." />
       <ul class="nav navbar-nav navbar-right">
         <li>
   <a href="https://github.com/r-lib/vroom/">
-    <span class="fab fa fab fa-github fa-lg"></span>
+    <span class="fab fa-github fa-lg"></span>
      
   </a>
 </li>
@@ -162,22 +162,23 @@ disk, it returns a string. It is primarily useful for examples and for
 testing.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>vroom_format</span>(
-  <span class='no'>x</span>,
-  <span class='kw'>delim</span> <span class='kw'>=</span> <span class='st'>"\t"</span>,
-  <span class='kw'>na</span> <span class='kw'>=</span> <span class='st'>"NA"</span>,
-  <span class='kw'>col_names</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>,
-  <span class='kw'>escape</span> <span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span>(<span class='st'>"double"</span>, <span class='st'>"backslash"</span>, <span class='st'>"none"</span>),
-  <span class='kw'>quote</span> <span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span>(<span class='st'>"needed"</span>, <span class='st'>"all"</span>, <span class='st'>"none"</span>),
-  <span class='kw'>bom</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>
-)</pre>
+    <pre class="usage"><span class='fu'>vroom_format</span><span class='op'>(</span>
+  <span class='va'>x</span>,
+  delim <span class='op'>=</span> <span class='st'>"\t"</span>,
+  eol <span class='op'>=</span> <span class='st'>"\n"</span>,
+  na <span class='op'>=</span> <span class='st'>"NA"</span>,
+  col_names <span class='op'>=</span> <span class='cn'>TRUE</span>,
+  escape <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='st'>"double"</span>, <span class='st'>"backslash"</span>, <span class='st'>"none"</span><span class='op'>)</span>,
+  quote <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='st'>"needed"</span>, <span class='st'>"all"</span>, <span class='st'>"none"</span><span class='op'>)</span>,
+  bom <span class='op'>=</span> <span class='cn'>FALSE</span>
+<span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
       <th>x</th>
-      <td><p>A data frame to write to disk</p></td>
+      <td><p>A data frame or tibble to write to disk.</p></td>
     </tr>
     <tr>
       <th>delim</th>
@@ -185,22 +186,18 @@ testing.</p>
 tab separated value (TSV) files.</p></td>
     </tr>
     <tr>
+      <th>eol</th>
+      <td><p>The end of line character to use. Most commonly either <code>"\n"</code> for
+Unix style newlines, or <code>"\r\n"</code> for Windows style newlines.</p></td>
+    </tr>
+    <tr>
       <th>na</th>
       <td><p>String used for missing values. Defaults to 'NA'.</p></td>
     </tr>
     <tr>
       <th>col_names</th>
-      <td><p>Either <code>TRUE</code>, <code>FALSE</code> or a character vector
-of column names.</p>
-<p>If <code>TRUE</code>, the first row of the input will be used as the column
-names, and will not be included in the data frame. If <code>FALSE</code>, column
-names will be generated automatically: X1, X2, X3 etc.</p>
-<p>If <code>col_names</code> is a character vector, the values will be used as the
-names of the columns, and the first row of the input will be read into
-the first row of the output data frame.</p>
-<p>Missing (<code>NA</code>) column names will generate a warning, and be filled
-in with dummy names <code>X1</code>, <code>X2</code> etc. Duplicate column names
-will generate a warning and be made unique with a numeric prefix.</p></td>
+      <td><p>If <code>FALSE</code>, column names will not be included at the top of the file. If <code>TRUE</code>,
+column names will be included. If not specified, <code>col_names</code> will take the opposite value given to <code>append</code>.</p></td>
     </tr>
     <tr>
       <th>escape</th>
@@ -238,11 +235,11 @@ excel to read the data with the correct encoding (UTF-8)</p></td>
 
       <footer>
       <div class="copyright">
-  <p>Developed by <a href='http://jimhester.com'>Jim Hester</a>, <a href='http://hadley.nz'>Hadley Wickham</a>, <a href='https://www.rstudio.com'><img src='https://www.tidyverse.org/rstudio-logo.svg' alt='RStudio' height='24' /></a>.</p>
+  <p>Developed by <a href='https://jimhester.com'>Jim Hester</a>, <a href='http://hadley.nz'>Hadley Wickham</a>, <a href='https://www.rstudio.com'><img src='https://www.tidyverse.org/rstudio-logo.svg' alt='RStudio' height='24' /></a>.</p>
 </div>
 
 <div class="pkgdown">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.5.1.9000.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.6.1.</p>
 </div>
 
       </footer>
