@@ -6,15 +6,13 @@
 <!-- badges: start -->
 
 [![R build
-status](https://github.com/r-lib/vroom/workflows/R-CMD-check/badge.svg)](https://github.com/r-lib/vroom)
+status](https://github.com/r-lib/vroom/workflows/R-CMD-check/badge.svg)](https://github.com/r-lib/vroom/actions)
 [![Codecov test
 coverage](https://codecov.io/gh/r-lib/vroom/branch/master/graph/badge.svg)](https://codecov.io/gh/r-lib/vroom?branch=master)
 [![CRAN
 status](https://www.r-pkg.org/badges/version/vroom)](https://cran.r-project.org/package=vroom)
 [![Lifecycle:
-maturing](https://img.shields.io/badge/lifecycle-maturing-blue.svg)](https://www.tidyverse.org/lifecycle/#maturing)
-[![R build
-status](https://github.com/r-lib/vroom/workflows/R-CMD-check/badge.svg)](https://github.com/r-lib/vroom/actions)
+stable](https://img.shields.io/badge/lifecycle-stable-brightgreen.svg)](https://lifecycle.r-lib.org/articles/stages.html#stable)
 <!-- badges: end -->
 
 The fastest delimited reader for R, **1.48 GB/sec**.
@@ -232,17 +230,16 @@ issue, so it is recommended you use at least that version.
 
 ## Thanks
 
-  - [Gabe Becker](https://twitter.com/groundwalkergmb), [Luke
-    Tierney](https://homepage.divms.uiowa.edu/~luke/) and [Tomas
-    Kalibera](https://github.com/kalibera) for conceiving, Implementing
-    and maintaining the [Altrep
+  - Gabe Becker, [Luke Tierney](https://homepage.divms.uiowa.edu/~luke/)
+    and [Tomas Kalibera](https://github.com/kalibera) for conceiving,
+    Implementing and maintaining the [Altrep
     framework](https://svn.r-project.org/R/branches/ALTREP/ALTREP.html)
-  - [Romain François](https://twitter.com/romain_francois), whose
+  - Romain François, whose
     [Altrepisode](https://web.archive.org/web/20200315075838/https://purrple.cat/blog/2018/10/14/altrep-and-cpp/)
     package and [related
     blog-posts](https://web.archive.org/web/20200315075838/https://purrple.cat/blog/2018/10/14/altrep-and-cpp/)
     were a great guide for creating new Altrep objects in C++.
-  - [Matt Dowle](https://twitter.com/mattdowle) and the rest of the
+  - Matt Dowle and the rest of the
     [Rdatatable](https://github.com/Rdatatable) team,
     `data.table::fread()` is blazing fast and great motivation to see
-    how fast we could goo faster\!
+    how fast we could go faster\!

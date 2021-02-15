@@ -31,7 +31,8 @@ delimited_index::delimited_index(
     const bool has_header,
     const size_t skip,
     size_t n_max,
-    const char comment,
+    const char* comment,
+    std::shared_ptr<vroom_errors> errors,
     size_t num_threads,
     bool progress,
     const bool use_threads)
@@ -131,102 +132,120 @@ delimited_index::delimited_index(
     num_threads = 1;
   }
 
-  idx_ = std::vector<idx_t>(num_threads + 1);
+start_indexing:
 
-  // Index the first row
-  idx_[0].push_back(start - 1);
-  size_t cols = 0;
-  bool in_quote = false;
-  size_t lines_read = index_region(
-      mmap_,
-      idx_[0],
-      delim_.c_str(),
-      quote,
-      in_quote,
-      start,
-      first_nl + 1,
-      0,
-      n_max,
-      cols,
-      0,
-      pb,
-      -1);
-  columns_ = idx_[0].size() - 1;
+  try {
 
-  std::vector<std::thread> threads;
+    idx_ = std::vector<idx_t>(num_threads + 1);
 
-  if (nmax_set) {
-    threads.emplace_back([&] {
-      n_max -= lines_read;
-      index_region(
-          mmap_,
-          idx_[1],
-          delim_.c_str(),
-          quote,
-          in_quote,
-          first_nl,
-          file_size,
-          0,
-          n_max,
-          cols,
-          columns_,
-          pb,
-          file_size / 100);
-    });
-  } else {
-    threads = parallel_for(
-        file_size - first_nl,
-        [&](size_t start, size_t end, size_t id) {
-          idx_[id + 1].reserve((guessed_rows / num_threads) * columns_);
-          start = find_next_newline(mmap_, first_nl + start, false);
-          end = find_next_newline(mmap_, first_nl + end, false) + 1;
-          size_t cols = 0;
-          bool in_quote = false;
-          index_region(
-              mmap_,
-              idx_[id + 1],
-              delim_.c_str(),
-              quote,
-              in_quote,
-              start,
-              end,
-              0,
-              n_max,
-              cols,
-              columns_,
-              pb,
-              file_size / 100);
-        },
+    // Index the first row
+    size_t cols = 0;
+    csv_state state = RECORD_START;
+    size_t lines_read = index_region(
+        mmap_,
+        idx_[0],
+        delim_.c_str(),
+        quote,
+        comment_,
+        state,
+        start,
+        first_nl + 1,
+        0,
+        n_max,
+        cols,
+        0,
+        errors,
+        pb,
         num_threads,
-        use_threads,
-        false);
-  }
+        -1);
+    columns_ = idx_[0].size() - 1;
 
-  if (progress_) {
+    std::vector<std::future<void>> threads;
+
+    if (nmax_set) {
+      threads.emplace_back(std::async(std::launch::async, [&] {
+        n_max = n_max > lines_read ? n_max - lines_read : 0;
+        index_region(
+            mmap_,
+            idx_[1],
+            delim_.c_str(),
+            quote,
+            comment_,
+            state,
+            first_nl + 1,
+            file_size,
+            0,
+            n_max,
+            cols,
+            columns_,
+            errors,
+            pb,
+            num_threads,
+            file_size / 100);
+      }));
+    } else {
+      threads = parallel_for(
+          file_size - first_nl,
+          [&](size_t start, size_t end, size_t id) {
+            idx_[id + 1].reserve((guessed_rows / num_threads) * columns_);
+            start = find_next_newline(mmap_, first_nl + start, false) + 1;
+            end = find_next_newline(mmap_, first_nl + end, false) + 1;
+            size_t cols = 0;
+            csv_state state = RECORD_START;
+            index_region(
+                mmap_,
+                idx_[id + 1],
+                delim_.c_str(),
+                quote,
+                comment_,
+                state,
+                start,
+                end,
+                0,
+                n_max,
+                cols,
+                columns_,
+                errors,
+                pb,
+                num_threads,
+                file_size / 100);
+          },
+          num_threads,
+          use_threads,
+          false);
+    }
+
+    if (progress_) {
 #ifndef VROOM_STANDALONE
-    pb->display_progress();
+      pb->display_progress();
 #endif
-  }
+    }
 
-  for (auto& t : threads) {
-    t.join();
-  }
+    for (auto& t : threads) {
+      t.get();
+    }
 
+  } catch (newline_error& e) {
+    num_threads = 1;
+    goto start_indexing;
+  }
   size_t total_size = std::accumulate(
       idx_.begin(), idx_.end(), std::size_t{0}, [](size_t sum, const idx_t& v) {
-        sum += v.size() > 0 ? v.size() - 1 : 0;
+        sum += v.size() > 0 ? v.size() : 0;
         return sum;
       });
 
-  rows_ = columns_ > 0 ? total_size / columns_ : 0;
+  rows_ = columns_ > 0 ? total_size / (columns_ + 1) : 0;
 
   if (rows_ > 0 && has_header_) {
     --rows_;
   }
 
+  // REprintf("columns_: %i rows_: %i\n", columns_, rows_);
+
 #ifdef VROOM_LOG
-  //#if SPDLOG_ACTIVE_LEVEL <= SPD_LOG_LEVEL_DEBUG
-  auto log = spdlog::basic_logger_mt("basic_logger", "logs/index.idx", true);
+  auto log = spdlog::basic_logger_mt("basic_logger", "logs/index.idx");
+  log->set_level(spdlog::level::debug);
   for (auto& i : idx_) {
     for (auto& v : i) {
       SPDLOG_LOGGER_DEBUG(log, "{}", v);
@@ -234,7 +253,6 @@ delimited_index::delimited_index(
     SPDLOG_LOGGER_DEBUG(log, "end of idx {0:x}", (size_t)&i);
   }
   spdlog::drop("basic_logger");
-//#endif
 #endif
 
   SPDLOG_DEBUG(
@@ -283,6 +301,12 @@ delimited_index::get_cell(size_t i, bool is_first) const {
 
   auto oi = i;
 
+  auto i_row = i / (columns_);
+  auto i_col = i % (columns_);
+
+  auto ni = i_row * (columns_ + 1) + i_col;
+  i = ni;
+
   for (const auto& idx : idx_) {
     auto sz = idx.size();
     if (i + 1 < sz) {
@@ -295,11 +319,16 @@ delimited_index::get_cell(size_t i, bool is_first) const {
       // By relying on 0 and 1 being true and false we can remove a branch
       // here, which improves performance a bit, as this function is called a
       // lot.
-      return {mmap_.data() + (start + (!is_first * delim_len_) + is_first),
-              mmap_.data() + end};
+      if (!is_first) {
+        start = start + delim_len_;
+      }
+
+      // REprintf(
+      //"oi: %i ni: %i i: %i start: %i end: %i\n", oi, ni, i, start, end);
+      return {mmap_.data() + start, mmap_.data() + end};
     }
 
-    i -= (sz - 1);
+    i -= sz;
   }
 
   std::stringstream ss;
@@ -317,10 +346,6 @@ delimited_index::get_trimmed_val(size_t i, bool is_first, bool is_last) const {
   const char* end;
 
   std::tie(begin, end) = get_cell(i, is_first);
-
-  if (is_last && windows_newlines_ && end > begin) {
-    end--;
-  }
 
   if (trim_ws_) {
     trim_whitespace(begin, end);

@@ -15,6 +15,7 @@ cpp
 Codecov
 csv
 datetime
+dbi
 delim
 Dowle
 dplyr
@@ -45,6 +46,7 @@ multithreaded
 natively
 nyc
 nycflights
+NUL
 Only’
 parsers
 pigz

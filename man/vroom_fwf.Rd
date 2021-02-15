@@ -25,6 +25,7 @@ vroom_fwf(
   altrep_opts = deprecated(),
   num_threads = vroom_threads(),
   progress = vroom_progress(),
+  show_col_specs = NULL,
   .name_repair = "unique"
 )
 
@@ -124,14 +125,19 @@ either a character vector of types, \code{TRUE} or \code{FALSE}. See
 \item{altrep_opts}{\Sexpr[results=rd, stage=render]{lifecycle::badge("deprecated")}}
 
 \item{num_threads}{Number of threads to use when reading and materializing
-vectors. If your data contains embedded newlines (newlines within fields)
-you \emph{must} use \code{num_threads = 1} to read the data properly.}
+vectors. If your data contains newlines within fields the parser will
+automatically be forced to use a single thread only.}
 
 \item{progress}{Display a progress bar? By default it will only display
 in an interactive session and not while knitting a document. The display
 is updated every 50,000 values and will only display if estimated reading
 time is 5 seconds or more. The automatic progress bar can be disabled by
 setting option \code{readr.show_progress} to \code{FALSE}.}
+
+\item{show_col_specs}{Control showing the column specifications. If \code{TRUE}
+column specifications are always show, if \code{FALSE} they are never shown. If
+\code{NULL} (the default) they are shown only if an explicit specification is not
+given to \code{col_types}.}
 
 \item{.name_repair}{Handling of column names. By default, vroom ensures
 column names are not empty and unique. See \code{.name_repair} as documented in

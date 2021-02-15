@@ -29,6 +29,7 @@ vroom_fwf <- function(file,
                       altrep_opts = deprecated(),
                       num_threads = vroom_threads(),
                       progress = vroom_progress(),
+                      show_col_specs = NULL,
                       .name_repair = "unique") {
 
   verify_fwf_positions(col_positions)
@@ -41,7 +42,9 @@ vroom_fwf <- function(file,
   file <- standardise_path(file)
 
   if (length(file) == 0 || (n_max == 0 & identical(col_positions$col_names, FALSE))) {
-    return(tibble::tibble())
+    out <- tibble::tibble()
+    class(out) <- c("spec_tbl_df", class(out))
+    return(out)
   }
 
   if (n_max < 0 || is.infinite(n_max)) {
@@ -53,6 +56,8 @@ vroom_fwf <- function(file,
   }
 
   col_select <- vroom_enquo(rlang::enquo(col_select))
+
+  has_spec <- !is.null(col_types)
 
   col_types <- as.col_spec(col_types)
 
@@ -68,9 +73,10 @@ vroom_fwf <- function(file,
   out <- tibble::as_tibble(out, .name_repair = .name_repair)
 
   out <- vroom_select(out, col_select, id)
+  class(out) <- c("spec_tbl_df", class(out))
 
-  if (is.null(col_types)) {
-    show_spec_summary(out, locale = locale)
+  if (should_show_col_spec(has_spec, show_col_specs)) {
+    show_col_specs(out, locale)
   }
 
   out

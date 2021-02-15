@@ -29,7 +29,8 @@ delimited_index_connection::delimited_index_connection(
     const bool has_header,
     const size_t skip,
     size_t n_max,
-    const char comment,
+    const char* comment,
+    const std::shared_ptr<vroom_errors> errors,
     const size_t chunk_size,
     const bool progress) {
 
@@ -132,23 +133,25 @@ delimited_index_connection::delimited_index_connection(
   std::unique_ptr<multi_progress> empty_pb = nullptr;
 
   // Index the first row
-  idx_[0].push_back(start - 1);
-
   size_t cols = 0;
-  bool in_quote = false;
+  csv_state state = RECORD_START;
   size_t lines_read = index_region(
       buf[i],
       idx_[0],
       delim_.c_str(),
       quote,
-      in_quote,
+      comment_,
+      state,
       start,
       first_nl + 1,
       0,
       n_max,
       cols,
       0,
-      empty_pb);
+      errors,
+      empty_pb,
+      1,
+      -1);
 
   columns_ = idx_[0].size() - 1;
 
@@ -167,7 +170,7 @@ delimited_index_connection::delimited_index_connection(
     if (parse_fut.valid()) {
       parse_fut.wait();
     }
-    n_max -= lines_read;
+    n_max = n_max > lines_read ? n_max - lines_read : 0;
 
     if (n_max > 0) {
       parse_fut = std::async([&, i, sz, first_nl, total_read] {
@@ -176,14 +179,18 @@ delimited_index_connection::delimited_index_connection(
             idx_[1],
             delim_.c_str(),
             quote,
-            in_quote,
-            first_nl,
+            comment_,
+            state,
+            first_nl + 1,
             sz,
             total_read,
             n_max,
             cols,
             columns_,
-            empty_pb);
+            errors,
+            empty_pb,
+            1,
+            -1);
       });
     }
 
@@ -209,7 +216,7 @@ delimited_index_connection::delimited_index_connection(
       buf[i][sz] = '\0';
     }
 
-    first_nl = 0;
+    first_nl = -1;
 
     // SPDLOG_DEBUG("first_nl_loc: {0} size: {1}", first_nl, sz);
   }
@@ -253,11 +260,11 @@ delimited_index_connection::delimited_index_connection(
 
   size_t total_size = std::accumulate(
       idx_.begin(), idx_.end(), std::size_t{0}, [](size_t sum, const idx_t& v) {
-        sum += v.size() > 0 ? v.size() - 1 : 0;
+        sum += v.size() > 0 ? v.size() : 0;
         return sum;
       });
 
-  rows_ = columns_ > 0 ? total_size / columns_ : 0;
+  rows_ = columns_ > 0 ? total_size / (columns_ + 1) : 0;
 
   if (rows_ > 0 && has_header_) {
     --rows_;

@@ -10,8 +10,8 @@ NULL
 #'   file. If `NULL` the delimiter is guessed from the set of `c(",", "\t", " ",
 #'   "|", ":", ";")`.
 #' @param num_threads Number of threads to use when reading and materializing
-#'   vectors. If your data contains embedded newlines (newlines within fields)
-#'   you _must_ use `num_threads = 1` to read the data properly.
+#'   vectors. If your data contains newlines within fields the parser will
+#'   automatically be forced to use a single thread only.
 #' @param escape_double Does the file escape quotes by doubling them?
 #'   i.e. If this option is `TRUE`, the value '""' represents
 #'   a single quote, '"'.
@@ -29,6 +29,10 @@ NULL
 #'   either a character vector of types, `TRUE` or `FALSE`. See
 #'   [vroom_altrep()] for for full details.
 #' @param altrep_opts \Sexpr[results=rd, stage=render]{lifecycle::badge("deprecated")}
+#' @param show_col_specs Control showing the column specifications. If `TRUE`
+#'   column specifications are always show, if `FALSE` they are never shown. If
+#'   `NULL` (the default) they are shown only if an explicit specification is not
+#'   given to `col_types`.
 #' @export
 #' @examples
 #' # get path to example file
@@ -40,7 +44,7 @@ NULL
 #' # Input sources -------------------------------------------------------------
 #' # Read from a path
 #' vroom(input_file)
-#' # You can also use literal paths directly
+#' # You can also use paths directly
 #' # vroom("mtcars.csv")
 #'
 #' \dontrun{
@@ -48,8 +52,8 @@ NULL
 #' vroom("https://github.com/r-lib/vroom/raw/master/inst/extdata/mtcars.csv")
 #' }
 #'
-#' # Or directly from a string (must contain a trailing newline)
-#' vroom("x,y\n1,2\n3,4\n")
+#' # Or directly from a string with `I()`
+#' vroom(I("x,y\n1,2\n3,4\n"))
 #'
 #' # Column selection ----------------------------------------------------------
 #' # Pass column names or indexes directly to select them
@@ -65,19 +69,19 @@ NULL
 #' # Column types --------------------------------------------------------------
 #' # By default, vroom guesses the columns types, looking at 1000 rows
 #' # throughout the dataset.
-#' # You can specify them explcitly with a compact specification:
-#' vroom("x,y\n1,2\n3,4\n", col_types = "dc")
+#' # You can specify them explicitly with a compact specification:
+#' vroom(I("x,y\n1,2\n3,4\n"), col_types = "dc")
 #'
 #' # Or with a list of column types:
-#' vroom("x,y\n1,2\n3,4\n", col_types = list(col_double(), col_character()))
+#' vroom(I("x,y\n1,2\n3,4\n"), col_types = list(col_double(), col_character()))
 #'
 #' # File types ----------------------------------------------------------------
 #' # csv
-#' vroom("a,b\n1.0,2.0\n", delim = ",")
+#' vroom(I("a,b\n1.0,2.0\n"), delim = ",")
 #' # tsv
-#' vroom("a\tb\n1.0\t2.0\n")
+#' vroom(I("a\tb\n1.0\t2.0\n"))
 #' # Other delimiters
-#' vroom("a|b\n1.0|2.0\n", delim = "|")
+#' vroom(I("a|b\n1.0|2.0\n"), delim = "|")
 #'
 #' # Read datasets across multiple files ---------------------------------------
 #' mtcars_by_cyl <- vroom_example(vroom_examples("mtcars-"))
@@ -106,6 +110,7 @@ vroom <- function(
   altrep_opts = deprecated(),
   num_threads = vroom_threads(),
   progress = vroom_progress(),
+  show_col_specs = NULL,
   .name_repair = "unique"
   ) {
 
@@ -156,15 +161,23 @@ vroom <- function(
   is_null <- vapply(out, is.null, logical(1))
   out[is_null] <- NULL
 
-  out <- tibble::as_tibble(out, .name_repair = .name_repair)
+  out <- tibble::as_tibble(out, .name_repair = identity)
+  class(out) <- c("spec_tbl_df", class(out))
 
   out <- vroom_select(out, col_select, id)
 
-  if (!has_spec) {
-    show_spec_summary(out, locale = locale)
+  if (should_show_col_spec(has_spec, show_col_specs)) {
+    show_col_specs(out, locale)
   }
 
   out
+}
+
+should_show_col_spec <- function(has_spec, show_col_specs) {
+  if (is.null(show_col_specs)) {
+    return(isTRUE(!has_spec))
+  }
+  isTRUE(show_col_specs)
 }
 
 make_names <- function(x, len) {
@@ -347,13 +360,13 @@ vroom_altrep <- function(which = NULL) {
     getRversion() >= "3.5.0" && which$chr %||% vroom_use_altrep_chr(),
     getRversion() >= "3.5.0" && which$fct %||% vroom_use_altrep_fct(),
     getRversion() >= "3.5.0" && which$int %||% vroom_use_altrep_int(),
-    getRversion() >= "3.5.0" && which$int %||% vroom_use_altrep_big_int(),
     getRversion() >= "3.5.0" && which$dbl %||% vroom_use_altrep_dbl(),
     getRversion() >= "3.5.0" && which$num %||% vroom_use_altrep_num(),
     getRversion() >= "3.6.0" && which$lgl %||% vroom_use_altrep_lgl(), # logicals only supported in R 3.6.0+
     getRversion() >= "3.5.0" && which$dttm %||% vroom_use_altrep_dttm(),
     getRversion() >= "3.5.0" && which$date %||% vroom_use_altrep_date(),
-    getRversion() >= "3.5.0" && which$time %||% vroom_use_altrep_time()
+    getRversion() >= "3.5.0" && which$time %||% vroom_use_altrep_time(),
+    getRversion() >= "3.5.0" && which$big_int %||% vroom_use_altrep_big_int()
   )
 
   out <-  0L
@@ -387,8 +400,8 @@ altrep_vals <- function() c(
   "dttm" = 64L,
   "date" = 128L,
   "time" = 256L,
-# "skip" = 512L
-  "big_int" = 1024L
+  "big_int" = 512L,
+  "skip" = 1024L
 )
 
 #' @export

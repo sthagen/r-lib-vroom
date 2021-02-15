@@ -47,17 +47,34 @@ is_syntactic <- function(x) make.names(x) == x
 
 # Conditionally exported in zzz.R
 # @export
-compare.tbl_df <- function (x, y, ...) {
+compare.spec_tbl_df <- function (x, y, ...) {
   attr(x, "spec") <- NULL
+  attr(x, "problems") <- NULL
   attr(y, "spec") <- NULL
+  attr(y, "problems") <- NULL
+  class(x) <- setdiff(class(x), "spec_tbl_df")
+  class(y) <- setdiff(class(y), "spec_tbl_df")
   NextMethod("compare")
 }
 
 # Conditionally exported in zzz.R
 # @export
-compare_proxy.tbl_df <- function(x) {
+compare_proxy.spec_tbl_df <- function(x) {
   attr(x, "spec") <- NULL
+  attr(x, "problems") <- NULL
+  class(x) <- setdiff(class(x), "spec_tbl_df")
   x
+}
+
+#' @export
+all.equal.spec_tbl_df <- function(target, current, ...) {
+  attr(target, "spec") <- NULL
+  attr(target, "problems") <- NULL
+  attr(current, "spec") <- NULL
+  attr(current, "problems") <- NULL
+  class(target) <- setdiff(class(target), "spec_tbl_df")
+  class(current) <- setdiff(class(current), "spec_tbl_df")
+  NextMethod("all.equal")
 }
 
 is_rstudio_console <- function() {
@@ -72,4 +89,12 @@ is_rstudio_version <- function(min, max = .Machine$integer.max) {
     },
     error = function(e) FALSE
   )
+}
+
+#' @importFrom methods setOldClass
+setOldClass(c("spec_tbl_df", "tbl_df", "tbl", "data.frame"))
+
+utctime <- function(year, month, day, hour, min, sec, psec) {
+  utctime_(as.integer(year), as.integer(month), as.integer(day),
+    as.integer(hour), as.integer(min), as.integer(sec), as.numeric(psec))
 }

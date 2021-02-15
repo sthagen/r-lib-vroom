@@ -18,7 +18,7 @@ test_that("datetime parsing works", {
 r_parse <- function(x, fmt) as.POSIXct(strptime(x, fmt, tz = "UTC"))
 
 test_that("%d, %m and %y", {
-  target <- readr:::utctime(2010, 2, 3, 0, 0, 0, 0)
+  target <- utctime(2010, 2, 3, 0, 0, 0, 0)
 
   test_parse_datetime("10-02-03", "%y-%m-%d", expected = target)
   test_parse_datetime("10-03-02", "%y-%d-%m", expected = target)
@@ -27,7 +27,7 @@ test_that("%d, %m and %y", {
 })
 
 test_that("Compound formats work", {
-  target <- readr:::utctime(2010, 2, 3, 0, 0, 0, 0)
+  target <- utctime(2010, 2, 3, 0, 0, 0, 0)
 
   test_parse_datetime("02/03/10", "%D", expected = target)
   test_parse_datetime("2010-02-03", "%F", expected = target)
@@ -40,12 +40,12 @@ test_that("%y matches R behaviour", {
 })
 
 test_that("%e allows leading space", {
-  test_parse_datetime("201010 1", "%Y%m%e", expected = readr:::utctime(2010, 10, 1, 0, 0, 0, 0))
+  test_parse_datetime("201010 1", "%Y%m%e", expected = utctime(2010, 10, 1, 0, 0, 0, 0))
 })
 
 test_that("%OS captures partial seconds", {
-  test_parse_datetime("2001-01-01 00:00:01.125", "%Y-%m-%d %H:%M:%OS", expected = readr:::utctime(2001, 1, 1, 0, 0, 1, .125))
-  test_parse_datetime("2001-01-01 00:00:01.133", "%Y-%m-%d %H:%M:%OS", expected = readr:::utctime(2001, 1, 1, 0, 0, 1, .133))
+  test_parse_datetime("2001-01-01 00:00:01.125", "%Y-%m-%d %H:%M:%OS", expected = utctime(2001, 1, 1, 0, 0, 1, .125))
+  test_parse_datetime("2001-01-01 00:00:01.133", "%Y-%m-%d %H:%M:%OS", expected = utctime(2001, 1, 1, 0, 0, 1, .133))
 })
 
 test_that("%Y requires 4 digits", {
@@ -61,8 +61,7 @@ test_that("invalid dates return NA", {
 
 test_that("failed parsing returns NA", {
   test_parse_datetime(c("2010-02-ab", "2010-02", "2010/02/01"), "%Y-%m-%d",
-    expected = .POSIXct(rep(NA_real_, 3), tz = "UTC")
-  )
+    expected = .POSIXct(rep(NA_real_, 3), tz = "UTC"))
 })
 
 test_that("invalid specs returns NA", {
@@ -133,12 +132,12 @@ test_that("parse_date returns a double like as.Date()", {
 
 test_that("parses NA/empty correctly", {
   expect_equal(
-    vroom("x\n\n", delim = ",", col_types = list(x = "T")),
+    vroom(I("x\n\n"), delim = ",", col_types = list(x = "T")),
     tibble::tibble(x = .POSIXct(NA_real_, tz = "UTC"))
   )
 
   expect_equal(
-    vroom("x\n\n", delim = ",", col_types = list(x = "D")),
+    vroom(I("x\n\n"), delim = ",", col_types = list(x = "D")),
     tibble::tibble(x = as.Date(NA))
   )
 
@@ -175,18 +174,17 @@ test_that("locale affects am/pm", {
   test_parse_time("\UC624\UD6C4 01\UC2DC 30\UBD84", "%p %H\UC2DC %M\UBD84", expected = expected, locale = locale("ko"))
 })
 
-#test_that("locale affects both guessing and parsing", {
-  ##TODO: not working
-  #out <- vroom("01/02/2013\n", col_names = FALSE, locale = locale(date_format = "%m/%d/%Y"))
-  #expect_equal(out, as.Date("2013-01-02"))
-#})
+test_that("locale affects both guessing and parsing", {
+  out <- vroom(I("01/02/2013\n"), delim = ",", col_names = FALSE, col_types = list(), locale = locale(date_format = "%m/%d/%Y"))
+  expect_equal(out[[1]][[1]], as.Date("2013-01-02"))
+})
 
 ## Time zones ------------------------------------------------------------------
 
 test_that("same times with different offsets parsed as same time", {
   # From http://en.wikipedia.org/wiki/ISO_8601#Time_offsets_from_UTC
   same_time <- paste("2010-02-03", c("18:30Z", "22:30+04", "1130-0700", "15:00-03:30"))
-  test_parse_datetime(same_time, format = "", expected = rep(readr:::utctime(2010, 2, 3, 18, 30, 0, 0), 4))
+  test_parse_datetime(same_time, format = "", expected = rep(utctime(2010, 2, 3, 18, 30, 0, 0), 4))
 })
 
 test_that("offsets can cross date boundaries", {
@@ -215,19 +213,19 @@ test_that("unambiguous times with and without daylight savings", {
 ## Guessing ---------------------------------------------------------------------
 
 test_that("DDDD-DD not parsed as date (i.e. doesn't trigger partial date match)", {
-  expect_type(vroom("1989-90\n1990-91\n", delim = "\n", col_types = list())[[1]], "character")
+  expect_type(vroom(I("1989-90\n1990-91\n"), delim = "\n", col_types = list())[[1]], "character")
 })
 
 test_that("leading zeros don't get parsed as date without explicit separator", {
-  expect_type(vroom("00010203\n", col_names = FALSE, delim = "\n", col_types = list())[[1]], "character")
-  expect_s3_class(vroom("0001-02-03\n", col_names = FALSE, delim = "\n", col_types = list())[[1]], "Date")
+  expect_type(vroom(I("00010203\n"), col_names = FALSE, delim = "\n", col_types = list())[[1]], "double")
+  expect_s3_class(vroom(I("0001-02-03\n"), col_names = FALSE, delim = "\n", col_types = list())[[1]], "Date")
 })
 
 test_that("must have either two - or none", {
-  expect_s3_class(vroom("2000-10-10\n", col_names = FALSE, delim = "\n", col_types = list())[[1]], "Date")
-  expect_type(vroom("2000-1010\n", col_names = FALSE, delim = "\n", col_types = list())[[1]], "character")
-  expect_type(vroom("200010-10\n", col_names = FALSE, delim = "\n", col_types = list())[[1]], "character")
-  expect_type(vroom("20001010\n", col_names = FALSE, delim = "\n", col_types = list())[[1]], "double")
+  expect_s3_class(vroom(I("2000-10-10\n"), col_names = FALSE, delim = "\n", col_types = list())[[1]], "Date")
+  expect_type(vroom(I("2000-1010\n"), col_names = FALSE, delim = "\n", col_types = list())[[1]], "character")
+  expect_type(vroom(I("200010-10\n"), col_names = FALSE, delim = "\n", col_types = list())[[1]], "character")
+  expect_type(vroom(I("20001010\n"), col_names = FALSE, delim = "\n", col_types = list())[[1]], "double")
 })
 
 test_that("times are guessed even without AM / PM", {
@@ -237,11 +235,27 @@ test_that("times are guessed even without AM / PM", {
 })
 
 test_that("subsetting works with both double and integer indexes", {
-  x <- vroom("X1\n2020-01-01 01:01:01", delim = ",", col_type = "T")
+  x <- vroom(I("X1\n2020-01-01 01:01:01"), delim = ",", col_type = "T")
   dt <- as.POSIXct("2020-01-01 01:01:01", tz = "UTC")
   na_dt <- .POSIXct(NA_real_, tz = "UTC")
   expect_equal(x$X1[1L], dt)
   expect_equal(x$X1[1], dt)
   expect_equal(x$X1[NA_integer_], na_dt)
   expect_equal(x$X1[NA_real_], na_dt)
+})
+
+test_that("guessing datetime uses the same logic as parsing", {
+  expect_type(vroom(I("date\n2015-06-14T09Z\n2015-06-14T09Z"), delim=",", col_types = list())[[1]], "character")
+})
+
+test_that("malformed date / datetime formats cause R errors", {
+  expect_error(
+    vroom(I("x\n6/28/2016"), delim = ",", col_types = list(x = col_date("%m/%/%Y")), altrep = FALSE),
+    "Unsupported format"
+  )
+
+  expect_error(
+    vroom(I("x\n6/28/2016"), delim = ",", col_types = list(x = col_datetime("%m/%/%Y")), altrep = FALSE),
+    "Unsupported format"
+  )
 })

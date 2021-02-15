@@ -3,8 +3,11 @@
 using namespace vroom;
 
 double parse_date(
-    const string& str, DateTimeParser& parser, const std::string& format) {
-  parser.setDate(str.begin(), str.end());
+    const char* begin,
+    const char* end,
+    DateTimeParser& parser,
+    const std::string& format) {
+  parser.setDate(begin, end);
   bool res = (format == "") ? parser.parseLocaleDate() : parser.parse(format);
 
   if (res) {
@@ -21,18 +24,36 @@ cpp11::doubles read_date(vroom_vec_info* info) {
 
   cpp11::writable::doubles out(n);
 
-  parallel_for(
-      n,
-      [&](size_t start, size_t end, size_t) {
-        R_xlen_t i = start;
-        DateTimeParser parser(info->locale.get());
-        auto col = info->column->slice(start, end);
-        for (const auto& str : *col) {
-          out[i++] = parse_date(str, parser, info->format);
-        }
-      },
-      info->num_threads,
-      true);
+  auto err_msg = info->format.size() == 0
+                     ? std::string("date in ISO8601")
+                     : std::string("date like ") + info->format;
+
+  try {
+    parallel_for(
+        n,
+        [&](size_t start, size_t end, size_t) {
+          R_xlen_t i = start;
+          DateTimeParser parser(info->locale.get());
+          auto col = info->column->slice(start, end);
+          for (auto b = col->begin(), e = col->end(); b != e; ++b) {
+            out[i++] = parse_value<double>(
+                b,
+                col,
+                [&](const char* begin, const char* end) -> double {
+                  return parse_date(begin, end, parser, info->format);
+                },
+                info->errors,
+                err_msg.c_str(),
+                *info->na);
+          }
+        },
+        info->num_threads,
+        true);
+  } catch (const std::runtime_error& e) {
+    Rf_errorcall(R_NilValue, "%s", e.what());
+  }
+
+  info->errors->warn_for_errors();
 
   out.attr("class") = "Date";
 

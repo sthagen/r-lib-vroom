@@ -46,7 +46,7 @@ bool isNumber(const std::string& x, LocaleInfo* pLocale) {
     return false;
 
   auto str = vroom::string(x);
-  auto num = parse_num(str, *pLocale, true);
+  auto num = parse_num(str.begin(), str.end(), *pLocale, true);
 
   return !ISNA(num);
 }
@@ -98,11 +98,8 @@ static bool isDateTime(const std::string& x, LocaleInfo* pLocale) {
   if (!ok)
     return false;
 
-  if (!parser.compactDate())
-    return true;
-
-  // Values like 00014567 are unlikely to be dates, so don't guess
-  return parser.year() > 999;
+  DateTime dt = parser.makeDateTime();
+  return dt.validDateTime();
 }
 
 std::string guess_type__(

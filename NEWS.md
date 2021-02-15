@@ -1,6 +1,52 @@
 # vroom (development version)
 
+* New `vroom(show_col_specs=)` argument to more simply control showing of column specifications after parsing.
+
+* `vroom()` no longer inadvertently calls `.name_repair` functions twice (#310).
+
+* Fix an inadvertent performance regression when reading values (#309)
+
+* `problems()` now throws a more informative error if called on a readr object (#308).
+
+* `vroom()` now supports comments within data, not just at the start of the file (#294, #302)
+
+* `n_max` argument is correctly respected in edge cases (#306)
+
+* `vroom()` now preserves the spec attribute when vroom and readr are both loaded (#303)
+
+* vroom now registers the S3 class with `methods::setOldClass()` (r-dbi/DBI#345)
+
+* vroom parser is now more robust to quoting issues when tracking the CSV state (#301)
+
+# vroom 1.4.0
+
+## Major changes and new functions
+
+* vroom now tracks indexing and parsing errors like readr. The first time an issue is encountered a warning will be signaled. A tibble of all found problems can be retrieved with `vroom::problems()`. (#247)
+
+* Data with newlines within quoted fields will now automatically revert to using a single thread and be properly read (#282)
+
+* NUL values in character data are now permitted, with a warning.
+
+* New `vroom_write_lines()` function to write a character vector to a file (#291)
+
+* `vroom_write()` gains a `eol=` parameter to specify the end of line character(s) to use. Use `vroom_write(eol = "\r\n")` to write a file with Windows style newlines (#263).
+
+## Minor improvements and fixes
+
+* Datetime formats used when guessing now match those used when parsing (#240)
+
 * Quotes are now only valid next to newlines or delimiters (#224)
+
+* `vroom()` now signals an R error for invalid date and datetime formats, instead of crashing the session (#220).
+
+* `vroom(comment = )` now accepts multi-character comments (#286)
+
+* `vroom_lines()` now works with empty files (#285)
+
+* Vectors are now subset properly when given invalid subscripts (#283)
+
+* `vroom_write()` now works when the delimiter is empty, e.g. `delim = ""` (#287).
 
 * `vroom_write()` now works with all ALTREP vectors, including string vectors (#270)
 

@@ -71,14 +71,21 @@ test_that("NAs included in levels if desired", {
   )
 })
 
-#test_that("Factors handle encodings properly (#615)", {
-  #x <- test_vroom(encoded("test\nA\n\xC4\n", "latin1"),
-    #col_types = cols(col_factor(c("A", "\uC4"))),
-    #locale = locale(encoding = "latin1"), progress = FALSE)
-
-  #expect_is(x$test, "factor")
-  #expect_equal(x$test, factor(c("A", "\uC4")))
-#})
+test_that("Factors handle encodings properly (#615)", {
+  encoded <- function(x, encoding) {
+    Encoding(x) <- encoding
+    x
+  }
+  f <- tempfile()
+  on.exit(unlink(f))
+  writeBin(charToRaw(encoded("test\nA\n\xC4\n", "latin1")), f)
+  x <- test_vroom(f,
+    delim = ",",
+    col_types = cols(col_factor(c("A", "\uC4"))),
+    locale = locale(encoding = "latin1"),
+    equals = tibble::tibble(test = factor(c("A", "\uC4"), levels = c("A", "\uC4")))
+  )
+})
 
 test_that("factors parse like factor if trim_ws = FALSE", {
   test_vroom("a\na \n", col_names = FALSE, trim_ws = FALSE,
@@ -127,17 +134,17 @@ test_that("encodings are respected", {
 })
 
 test_that("Results are correct with backslash escapes", {
-  obj <- vroom("A,T\nB,F\n", col_names = FALSE, col_types = list("f", "f"), escape_backslash = TRUE)
+  obj <- vroom(I("A,T\nB,F\n"), col_names = FALSE, col_types = list("f", "f"), escape_backslash = TRUE)
   exp <- tibble::tibble(X1 = factor(c("A", "B")), X2 = factor(c("T", "F"), levels = c("T", "F")))
   expect_equal(obj, exp)
 
-  obj2 <- vroom("A,T\nB,F\n", col_names = FALSE, col_types = list("f", "f"), escape_backslash = FALSE)
+  obj2 <- vroom(I("A,T\nB,F\n"), col_names = FALSE, col_types = list("f", "f"), escape_backslash = FALSE)
   expect_equal(obj2, exp)
 })
 
 
 test_that("subsetting works with both double and integer indexes", {
-  x <- vroom("X1\nfoo", delim = ",", col_types = "f")
+  x <- vroom(I("X1\nfoo"), delim = ",", col_types = "f")
   expect_equal(x$X1[1L], factor("foo"))
   expect_equal(x$X1[1], factor("foo"))
   expect_equal(x$X1[NA_integer_], factor(NA_character_, levels = "foo"))

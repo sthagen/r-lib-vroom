@@ -6,8 +6,9 @@
 \usage{
 vroom_write(
   x,
-  path,
+  file,
   delim = "\\t",
+  eol = "\\n",
   na = "NA",
   col_names = !append,
   append = FALSE,
@@ -21,10 +22,13 @@ vroom_write(
 \arguments{
 \item{x}{A data frame or tibble to write to disk.}
 
-\item{path}{\Sexpr[results=rd, stage=render]{lifecycle::badge("deprecated")}}
+\item{file}{File or connection to write to.}
 
 \item{delim}{Delimiter used to separate values. Defaults to \verb{\\t} to write
 tab separated value (TSV) files.}
+
+\item{eol}{The end of line character to use. Most commonly either \code{"\n"} for
+Unix style newlines, or \code{"\r\n"} for Windows style newlines.}
 
 \item{na}{String used for missing values. Defaults to 'NA'.}
 
@@ -54,8 +58,8 @@ recommended when saving data for consumption by excel, as it will force
 excel to read the data with the correct encoding (UTF-8)}
 
 \item{num_threads}{Number of threads to use when reading and materializing
-vectors. If your data contains embedded newlines (newlines within fields)
-you \emph{must} use \code{num_threads = 1} to read the data properly.}
+vectors. If your data contains newlines within fields the parser will
+automatically be forced to use a single thread only.}
 
 \item{progress}{Display a progress bar? By default it will only display
 in an interactive session and not while knitting a document. The display
