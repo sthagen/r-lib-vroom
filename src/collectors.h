@@ -115,7 +115,7 @@ inline cpp11::strings read_column_names(
 
 std::string guess_type__(
     cpp11::writable::strings input,
-    cpp11::strings na,
+    const cpp11::strings& na,
     LocaleInfo* locale,
     bool guess_integer);
 
@@ -139,17 +139,25 @@ inline collectors resolve_collectors(
 
   auto make_names = vroom["make_names"];
 
+  if (num_rows == 0 && num_cols == 0) {
+    if (TYPEOF(col_names) == STRSXP) {
+      col_nms = static_cast<SEXP>(col_names);
+    } else {
+      if (TYPEOF(col_types) == VECSXP) {
+        col_nms = static_cast<SEXP>(
+            make_names(R_NilValue, Rf_xlength(VECTOR_ELT(col_types, 0))));
+      }
+    }
+  }
   if (TYPEOF(col_names) == STRSXP) {
-    col_nms = static_cast<SEXP>(make_names(col_names, num_cols));
+    col_nms = static_cast<SEXP>(col_names);
   } else if (TYPEOF(col_names) == LGLSXP && cpp11::logicals(col_names)[0]) {
     col_nms = read_column_names(idx, locale_info);
-  } else {
-    col_nms = static_cast<SEXP>(make_names(R_NilValue, num_cols));
   }
 
   auto col_types_standardise = vroom["col_types_standardise"];
-  cpp11::list col_types_std(
-      col_types_standardise(col_types, col_nms, col_select, name_repair));
+  cpp11::list col_types_std(col_types_standardise(
+      col_types, num_cols, col_nms, col_select, name_repair));
 
   R_xlen_t guess_num = std::min(num_rows, guess_max);
 

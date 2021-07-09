@@ -17,6 +17,7 @@ vroom_fwf(
   locale = default_locale(),
   na = c("", "NA"),
   comment = "",
+  skip_empty_rows = TRUE,
   trim_ws = TRUE,
   skip = 0,
   n_max = Inf,
@@ -25,7 +26,7 @@ vroom_fwf(
   altrep_opts = deprecated(),
   num_threads = vroom_threads(),
   progress = vroom_progress(),
-  show_col_specs = NULL,
+  show_col_types = NULL,
   .name_repair = "unique"
 )
 
@@ -63,9 +64,10 @@ a string. See \code{vignette("readr")} for more details.
 
 If \code{NULL}, all column types will be imputed from the first 1000 rows
 on the input. This is convenient (and fast), but not robust. If the
-imputation fails, you'll need to supply the correct types yourself.
+imputation fails, you'll need to increase the \code{guess_max} or supply the
+correct types yourself.
 
-If a column specification created by \code{\link[readr:cols]{cols()}}, it must contain
+Column specifications created by \code{\link[=list]{list()}} or \code{\link[readr:cols]{cols()}} must contain
 one column specification for each column. If you only want to read a
 subset of the columns, use \code{\link[readr:cols]{cols_only()}}.
 
@@ -86,16 +88,18 @@ character represents one column:
 
 By default, reading a file without a column specification will print a
 message showing what \code{readr} guessed they were. To remove this message,
-use \code{col_types = cols()}.
+set \code{show_col_types = FALSE} or set `options(readr.show_col_types = FALSE).
 }}
 
-\item{col_select}{One or more selection expressions, like in
-\code{dplyr::select()}. Use \code{c()} or \code{list()} to use more than one expression.
-See \code{?dplyr::select} for details on available selection options.}
+\item{col_select}{<\code{\link[tidyselect:language]{tidy-select}}> Columns to include
+in the results, either by name or by numeric index. Use \code{\link[=c]{c()}} or \code{\link[=list]{list()}}
+to select with more than one expression and \code{\link[tidyselect:language]{?tidyselect::language}} for full
+details on the selection language.}
 
-\item{id}{Either a string or 'NULL'. If a string, the output will contain a
-variable with that name with the filename(s) as the value. If 'NULL', the
-default, no variable will be created.}
+\item{id}{The name of a column in which to store the file path. This is
+useful when reading multiple input files and there is data in the file
+paths, such as the data collection date. If \code{NULL} (the default) no extra
+column is created.}
 
 \item{locale}{The locale controls defaults that vary from place to place.
 The default locale is US-centric (like R), but you can use
@@ -109,14 +113,18 @@ option to \code{character()} to indicate no missing values.}
 \item{comment}{A string used to identify comments. Any text after the
 comment characters will be silently ignored.}
 
-\item{trim_ws}{Should leading and trailing whitespace be trimmed from
+\item{skip_empty_rows}{Should blank rows be ignored altogether? i.e. If this
+option is \code{TRUE} then blank rows will not be represented at all.  If it is
+\code{FALSE} then they will be represented by \code{NA} values in all the columns.}
+
+\item{trim_ws}{Should leading and trailing whitespace (ASCII spaces and tabs) be trimmed from
 each field before parsing it?}
 
 \item{skip}{Number of lines to skip before reading data.}
 
-\item{n_max}{Maximum number of records to read.}
+\item{n_max}{Maximum number of lines to read.}
 
-\item{guess_max}{Maximum number of records to use for guessing column types.}
+\item{guess_max}{Maximum number of lines to use for guessing column types.}
 
 \item{altrep}{Control which column types use Altrep representations,
 either a character vector of types, \code{TRUE} or \code{FALSE}. See
@@ -124,25 +132,34 @@ either a character vector of types, \code{TRUE} or \code{FALSE}. See
 
 \item{altrep_opts}{\Sexpr[results=rd, stage=render]{lifecycle::badge("deprecated")}}
 
-\item{num_threads}{Number of threads to use when reading and materializing
-vectors. If your data contains newlines within fields the parser will
-automatically be forced to use a single thread only.}
+\item{num_threads}{The number of processing threads to use for initial
+parsing and lazy reading of data.}
 
 \item{progress}{Display a progress bar? By default it will only display
-in an interactive session and not while knitting a document. The display
-is updated every 50,000 values and will only display if estimated reading
-time is 5 seconds or more. The automatic progress bar can be disabled by
-setting option \code{readr.show_progress} to \code{FALSE}.}
+in an interactive session and not while knitting a document. The automatic
+progress bar can be disabled by setting option \code{readr.show_progress} to
+\code{FALSE}.}
 
-\item{show_col_specs}{Control showing the column specifications. If \code{TRUE}
-column specifications are always show, if \code{FALSE} they are never shown. If
-\code{NULL} (the default) they are shown only if an explicit specification is not
-given to \code{col_types}.}
+\item{show_col_types}{If \code{FALSE}, do not show the guessed column types. If
+\code{TRUE} always show the column types, even if they are supplied. If \code{NULL}
+(the default) only show the column types if they are not explicitly supplied
+by the \code{col_types} argument.}
 
-\item{.name_repair}{Handling of column names. By default, vroom ensures
-column names are not empty and unique. See \code{.name_repair} as documented in
-\code{\link[tibble:tibble]{tibble::tibble()}} for additional options including supplying user defined
-name repair functions.}
+\item{.name_repair}{Treatment of problematic column names:
+\itemize{
+\item \code{"minimal"}: No name repair or checks, beyond basic existence of names
+\item \code{"unique"}: Make sure names are unique and not empty
+\item \code{"check_unique"}: (default value), no name repair, but check they are
+\code{unique}
+\item \code{"universal"}: Make the names \code{unique} and syntactic
+\item a function: apply custom name repair (e.g., \code{.name_repair = make.names}
+for names in the style of base R)
+\item A purrr-style anonymous function, see \code{\link[rlang:as_function]{rlang::as_function()}}
+}
+
+This argument is passed on as \code{repair} to \code{\link[vctrs:vec_as_names]{vctrs::vec_as_names()}}.
+See there for more details on these terms and the strategies used
+to enforce them.}
 
 \item{col_names}{Either NULL, or a character vector column names.}
 

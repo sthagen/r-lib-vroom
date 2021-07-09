@@ -285,3 +285,57 @@ test_that("Errors if begin is greater than end", {
     "`col_positions` must have begin less than end"
   )
 })
+
+test_that("vroom_fwf respects n_max (#334)", {
+  out <- vroom_fwf(I("foo 1\nbar 2\nbaz 3\nqux 4"), n_max = 0, col_types = list())
+  expect_named(out, c("X1", "X2"))
+  expect_equal(out[[1]], character())
+  expect_equal(out[[2]], character())
+
+  out <- vroom_fwf(I("foo 1\nbar 2\nbaz 3\nqux 4"), n_max = 1, col_types = list())
+  expect_named(out, c("X1", "X2"))
+  expect_equal(out[[1]], c("foo"))
+  expect_equal(out[[2]], c(1))
+
+  out <- vroom_fwf(I("foo 1\nbar 2\nbaz 3\nqux 4"), n_max = 2, col_types = list())
+  expect_named(out, c("X1", "X2"))
+  expect_equal(out[[1]], c("foo", "bar"))
+  expect_equal(out[[2]], c(1, 2))
+})
+
+test_that("vroom_fwf respects n_max when reading from a connection", {
+  f <- tempfile()
+  on.exit(unlink(f))
+  writeLines(rep("00010002", 1000), f)
+
+  out1 <- vroom_fwf(file(f), col_positions = fwf_widths(c(4, 4)), col_types = "ii")
+
+  expect_equal(dim(out1), c(1000, 2))
+
+  out2 <- vroom_fwf(file(f), n_max = 900, col_positions = fwf_widths(c(4, 4)), col_types = "ii")
+
+  expect_equal(dim(out2), c(900, 2))
+
+  out3 <- vroom_fwf(file(f), n_max = 100, col_positions = fwf_widths(c(4, 4)), col_types = "ii")
+
+  expect_equal(dim(out3), c(100, 2))
+
+  out4 <- vroom_fwf(file(f), n_max = 10, col_positions = fwf_widths(c(4, 4)), col_types = "ii")
+
+  expect_equal(dim(out4), c(10, 2))
+
+  out5 <- vroom_fwf(file(f), n_max = 1, col_positions = fwf_widths(c(4, 4)), col_types = "ii")
+
+  expect_equal(dim(out5), c(1, 2))
+})
+
+test_that("vroom_fwf works when skip_empty_rows is false (https://github.com/tidyverse/readr/issues/1211)", {
+  f <- tempfile()
+  on.exit(unlink(f))
+
+  writeLines(rep(" ", 10), f)
+
+  out <- vroom_fwf(f, fwf_cols(A = c(1, NA)), col_types = "c", na = " ", trim_ws = FALSE, skip_empty_rows = FALSE)
+
+  expect_equal(out[[1]], rep(NA_character_, 10))
+})

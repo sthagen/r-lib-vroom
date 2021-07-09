@@ -1,11 +1,11 @@
 Package: vroom
 Title: Read and Write Rectangular Text Data Quickly
-Version: 1.4.0.9000
+Version: 1.5.1.9000
 Authors@R: 
     c(person(given = "Jim",
              family = "Hester",
              role = c("aut", "cre"),
-             email = "james.f.hester@gmail.com",
+             email = "jim.hester@rstudio.com",
              comment = c(ORCID = "0000-0002-2739-7082")),
       person(given = "Hadley",
              family = "Wickham",
@@ -15,9 +15,6 @@ Authors@R:
       person(given = "https://github.com/mandreyel/",
              role = "cph",
              comment = "mio library"),
-      person(given = "R Core Team",
-             role = "ctb",
-             comment = "localtime.c code adapted from R"),
       person(given = "Jukka",
              family = "Jylänki",
              role = "cph",
@@ -33,7 +30,7 @@ Description: The goal of 'vroom' is to read and write data (like
     indexing step, then reads the values lazily , so only the data you
     actually use needs to be read.  The writer formats the data in
     parallel and writes to disk asynchronously from formatting.
-License: GPL-3
+License: MIT + file LICENSE
 URL: https://vroom.r-lib.org, https://github.com/r-lib/vroom
 BugReports: https://github.com/r-lib/vroom/issues
 Depends: 
@@ -49,10 +46,12 @@ Imports:
     rlang (>= 0.4.2),
     stats,
     tibble (>= 2.0.0),
+    tzdb (>= 0.1.1),
     vctrs (>= 0.2.0),
     tidyselect,
     withr
 Suggests: 
+    archive,
     bench (>= 1.1.0),
     covr,
     curl,
@@ -74,15 +73,16 @@ Suggests:
     xml2
 LinkingTo: 
     progress (>= 1.2.1),
-    cpp11 (>= 0.2.0)
+    cpp11 (>= 0.2.0),
+    tzdb (>= 0.1.1)
 VignetteBuilder: 
     knitr
 Config/testthat/edition: 3
 Config/testthat/parallel: false
+Config/Needs/website: nycflights13
 Copyright: file COPYRIGHTS
 Encoding: UTF-8
 Language: en-US
-LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.1
 SystemRequirements: C++11

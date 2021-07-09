@@ -123,6 +123,12 @@ test_that("%Z detects named time zones", {
   test_parse_datetime("2010-10-01 01:00 America/Chicago", "%Y-%m-%d %H:%M %Z", locale = ct, expected = ref)
 })
 
+test_that("%Z detects named time zones", {
+  ref <- .POSIXct(1285912800, "UTC")
+
+  test_parse_datetime("1285912800", "%s", expected = ref)
+})
+
 test_that("parse_date returns a double like as.Date()", {
   ref <- as.Date("2001-01-01")
 
@@ -132,12 +138,12 @@ test_that("parse_date returns a double like as.Date()", {
 
 test_that("parses NA/empty correctly", {
   expect_equal(
-    vroom(I("x\n\n"), delim = ",", col_types = list(x = "T")),
+    vroom(I("x\n\n"), delim = ",", col_types = list(x = "T"), skip_empty_rows = FALSE),
     tibble::tibble(x = .POSIXct(NA_real_, tz = "UTC"))
   )
 
   expect_equal(
-    vroom(I("x\n\n"), delim = ",", col_types = list(x = "D")),
+    vroom(I("x\n\n"), delim = ",", col_types = list(x = "D"), skip_empty_rows = FALSE),
     tibble::tibble(x = as.Date(NA))
   )
 
@@ -209,6 +215,35 @@ test_that("unambiguous times with and without daylight savings", {
   test_parse_datetime(c("2015-04-04 12:00:00", "2015-04-06 12:00:00"), locale = ja, expected = expected_ja)
 })
 
+test_that("ambiguous times always choose the earliest time", {
+  ny <- locale(tz = "America/New_York")
+
+  format <- "%Y-%m-%d %H:%M:%S%z"
+  expected <- as.POSIXct("1970-10-25 01:30:00-0400", tz = "America/New_York", format = format)
+
+  test_parse_datetime("1970-10-25 01:30:00", locale = ny, expected = expected)
+})
+
+test_that("nonexistent times return NA", {
+  ny <- locale(tz = "America/New_York")
+  expected <- .POSIXct(NA_real_, tz = "America/New_York")
+
+  test_parse_datetime("1970-04-26 02:30:00", locale = ny, expected = expected)
+})
+
+test_that("can use `tz = ''` for system time zone", {
+  withr::local_timezone("Europe/London")
+
+  system <- locale(tz = "")
+  expected <- as.POSIXct("1970-01-01 00:00:00", tz = "Europe/London")
+
+  test_parse_datetime("1970-01-01 00:00:00", locale = system, expected = expected)
+})
+
+test_that("can catch faulty system time zones", {
+  withr::local_timezone("foo")
+  expect_error(locale(tz = ""), "Unknown TZ foo")
+})
 
 ## Guessing ---------------------------------------------------------------------
 

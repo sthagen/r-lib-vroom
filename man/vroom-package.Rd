@@ -24,7 +24,7 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Jim Hester \email{james.f.hester@gmail.com} (\href{https://orcid.org/0000-0002-2739-7082}{ORCID})
+\strong{Maintainer}: Jim Hester \email{jim.hester@rstudio.com} (\href{https://orcid.org/0000-0002-2739-7082}{ORCID})
 
 Authors:
 \itemize{
@@ -34,7 +34,6 @@ Authors:
 Other contributors:
 \itemize{
   \item https://github.com/mandreyel/ (mio library) [copyright holder]
-  \item R Core Team (localtime.c code adapted from R) [contributor]
   \item Jukka Jylänki (grisu3 implementation) [copyright holder]
   \item Mikkel Jørgensen (grisu3 implementation) [copyright holder]
   \item RStudio [copyright holder, funder]

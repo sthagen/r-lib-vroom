@@ -8,6 +8,8 @@ vroom_lines(
   file,
   n_max = Inf,
   skip = 0,
+  na = character(),
+  skip_empty_rows = FALSE,
   locale = default_locale(),
   altrep = TRUE,
   altrep_opts = deprecated(),
@@ -18,9 +20,17 @@ vroom_lines(
 \arguments{
 \item{file}{path to a local file.}
 
-\item{n_max}{Maximum number of records to read.}
+\item{n_max}{Maximum number of lines to read.}
 
-\item{skip}{Number of lines to skip before reading data.}
+\item{skip}{Number of lines to skip before reading data. If \code{comment} is
+supplied any commented lines are ignored \emph{after} skipping.}
+
+\item{na}{Character vector of strings to interpret as missing values. Set this
+option to \code{character()} to indicate no missing values.}
+
+\item{skip_empty_rows}{Should blank rows be ignored altogether? i.e. If this
+option is \code{TRUE} then blank rows will not be represented at all.  If it is
+\code{FALSE} then they will be represented by \code{NA} values in all the columns.}
 
 \item{locale}{The locale controls defaults that vary from place to place.
 The default locale is US-centric (like R), but you can use
@@ -39,10 +49,9 @@ vectors. If your data contains newlines within fields the parser will
 automatically be forced to use a single thread only.}
 
 \item{progress}{Display a progress bar? By default it will only display
-in an interactive session and not while knitting a document. The display
-is updated every 50,000 values and will only display if estimated reading
-time is 5 seconds or more. The automatic progress bar can be disabled by
-setting option \code{readr.show_progress} to \code{FALSE}.}
+in an interactive session and not while knitting a document. The automatic
+progress bar can be disabled by setting option \code{readr.show_progress} to
+\code{FALSE}.}
 }
 \description{
 \code{vroom_lines()} is similar to \code{readLines()}, however it reads the lines

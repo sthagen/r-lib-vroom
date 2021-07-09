@@ -32,25 +32,25 @@ test_that("problems works for multiple files", {
 })
 
 test_that("problems with number of columns works for single files", {
-  probs3 <- expect_warning(problems(vroom(I("x,y,z\n1,2\n"), col_names = TRUE, col_types = "ddd", altrep = FALSE)))
+  expect_warning(probs3 <- problems(vroom(I("x,y,z\n1,2\n"), col_names = TRUE, col_types = "ddd", altrep = FALSE)))
   expect_equal(probs3$row, 2)
   expect_equal(probs3$col, 2)
   expect_equal(probs3$expected, "3 columns")
   expect_equal(probs3$actual, "2 columns")
 
-  probs3 <- expect_warning(problems(vroom(I("x,y,z\n1,2\n"), col_names = FALSE, col_types = "ddd", altrep = FALSE)))
+  expect_warning(probs3 <- problems(vroom(I("x,y,z\n1,2\n"), col_names = FALSE, col_types = "ddd", altrep = FALSE)))
   expect_equal(probs3$row[[4]], 2)
   expect_equal(probs3$col[[4]], 2)
   expect_equal(probs3$expected[[4]], "3 columns")
   expect_equal(probs3$actual[[4]], "2 columns")
 
-  probs4 <- expect_warning(problems(vroom(I("x,y\n1,2,3,4\n"), col_names = TRUE, col_types = "dd", altrep = FALSE)))
+  expect_warning(probs4 <- problems(vroom(I("x,y\n1,2,3,4\n"), col_names = TRUE, col_types = "dd", altrep = FALSE)))
   expect_equal(probs4$row[[2]], 2)
   expect_equal(probs4$col[[2]], 4)
   expect_equal(probs4$expected[[2]], "2 columns")
   expect_equal(probs4$actual[[2]], "4 columns")
 
-  probs2 <- expect_warning(problems(vroom(I("x,y\n1,2,3,4\n"), col_names = FALSE, col_types = "dd", altrep = FALSE)))
+  expect_warning(probs2 <- problems(vroom(I("x,y\n1,2,3,4\n"), col_names = FALSE, col_types = "dd", altrep = FALSE)))
   expect_equal(probs2$row[[4]], 2)
   expect_equal(probs2$col[[4]], 4)
   expect_equal(probs2$expected[[4]], "2 columns")
@@ -90,4 +90,40 @@ test_that("parsing problems are shown for all datatypes", {
 
 
     expect_warning(res <- vroom(I("x\nxyz\n"), delim = ",", col_types = list(col_logical())), "One or more parsing issues")
+})
+
+test_that("problems that are generated more than once are not duplicated", {
+  # On versions of R without ALTREP the warnings will happen at different times,
+  # so we skip this test in those cases
+  skip_if(getRversion() < "3.5")
+
+  res <- vroom(I("x\n1\n2\n3\n4\n5\na"), col_types = "i", delim = ",")
+
+  # generate first problem
+  expect_warning(res[[1]][[6]], "One or more parsing issues")
+
+  # generate the same problem again
+  res[[1]][[6]]
+
+  probs <- problems(res)
+  expect_equal(probs$row, 7)
+  expect_equal(probs$col, 1)
+  expect_equal(probs$expected, "an integer")
+})
+
+test_that("problems return the proper row number", {
+  expect_warning(
+    x <- vroom(I("a,b,c\nx,y,z,,"), altrep = FALSE, col_types = "ccc")
+  )
+  expect_equal(problems(x)$row, 2)
+
+  expect_warning(
+    y <- vroom(I("a,b,c\nx,y,z\nx,y,z,,"), altrep = FALSE, col_types = "ccc")
+  )
+  expect_equal(problems(y)$row, 3)
+
+  expect_warning(
+    z <- vroom(I("a,b,c\nx,y,z,,\nx,y,z,,\n"), altrep = FALSE, col_types = "ccc")
+  )
+  expect_equal(problems(z)$row, c(2, 3))
 })

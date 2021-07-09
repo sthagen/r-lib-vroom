@@ -23,13 +23,15 @@ vroom_fwf <- function(file,
                       col_types = NULL,
                       col_select = NULL, id = NULL,
                       locale = default_locale(), na = c("", "NA"),
-                      comment = "", trim_ws = TRUE, skip = 0, n_max = Inf,
+                      comment = "",
+                      skip_empty_rows = TRUE,
+                      trim_ws = TRUE, skip = 0, n_max = Inf,
                       guess_max = 100,
                       altrep = TRUE,
                       altrep_opts = deprecated(),
                       num_threads = vroom_threads(),
                       progress = vroom_progress(),
-                      show_col_specs = NULL,
+                      show_col_types = NULL,
                       .name_repair = "unique") {
 
   verify_fwf_positions(col_positions)
@@ -40,6 +42,11 @@ vroom_fwf <- function(file,
   }
 
   file <- standardise_path(file)
+
+  if (!is_ascii_compatible(locale$encoding)) {
+    file <- reencode_path(file, locale$encoding)
+    locale$encoding <- "UTF-8"
+  }
 
   if (length(file) == 0 || (n_max == 0 & identical(col_positions$col_names, FALSE))) {
     out <- tibble::tibble()
@@ -57,7 +64,7 @@ vroom_fwf <- function(file,
 
   col_select <- vroom_enquo(rlang::enquo(col_select))
 
-  has_spec <- !is.null(col_types)
+  has_col_types <- !is.null(col_types)
 
   col_types <- as.col_spec(col_types)
 
@@ -66,6 +73,7 @@ vroom_fwf <- function(file,
     col_types = col_types, col_select = col_select,
     name_repair = .name_repair,
     id = id, na = na, guess_max = guess_max, skip = skip, comment = comment,
+    skip_empty_rows = skip_empty_rows,
     n_max = n_max, num_threads = num_threads,
     altrep = vroom_altrep(altrep), locale = locale,
     progress = progress)
@@ -75,8 +83,8 @@ vroom_fwf <- function(file,
   out <- vroom_select(out, col_select, id)
   class(out) <- c("spec_tbl_df", class(out))
 
-  if (should_show_col_spec(has_spec, show_col_specs)) {
-    show_col_specs(out, locale)
+  if (should_show_col_types(has_col_types, show_col_types)) {
+    show_col_types(out, locale)
   }
 
   out

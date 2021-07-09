@@ -1,6 +1,8 @@
 #include <cpp11/list.hpp>
 #include <cpp11/sexp.hpp>
 #include <cpp11/strings.hpp>
+#include <utility>
+
 
 #include "LocaleInfo.h"
 #include "columns.h"
@@ -8,9 +10,9 @@
 #include "unicode_fopen.h"
 
 [[cpp11::register]] cpp11::list vroom_fwf_(
-    cpp11::list inputs,
-    std::vector<int> col_starts,
-    std::vector<int> col_ends,
+    const cpp11::list& inputs,
+    const std::vector<int>& col_starts,
+    const std::vector<int>& col_ends,
     bool trim_ws,
     cpp11::sexp col_names,
     cpp11::sexp col_types,
@@ -18,10 +20,11 @@
     cpp11::sexp name_repair,
     size_t skip,
     const char* comment,
+    bool skip_empty_rows,
     ptrdiff_t n_max,
     SEXP id,
-    cpp11::strings na,
-    cpp11::list locale,
+    const cpp11::strings& na,
+    const cpp11::list& locale,
     ptrdiff_t guess_max,
     size_t num_threads,
     size_t altrep,
@@ -38,16 +41,24 @@
   }
 
   auto idx = std::make_shared<vroom::index_collection>(
-      inputs, col_starts, col_ends, trim_ws, skip, comment, n_max, progress);
+      inputs,
+      col_starts,
+      col_ends,
+      trim_ws,
+      skip,
+      comment,
+      skip_empty_rows,
+      n_max,
+      progress);
 
   auto errors = new std::shared_ptr<vroom_errors>(new vroom_errors());
 
   return create_columns(
       idx,
-      col_names,
-      col_types,
-      col_select,
-      name_repair,
+      std::move(col_names),
+      std::move(col_types),
+      std::move(col_select),
+      std::move(name_repair),
       id,
       filenames,
       na,
@@ -91,7 +102,7 @@ std::vector<bool> find_empty_cols(Iterator begin, Iterator end, ptrdiff_t n) {
 }
 
 [[cpp11::register]] cpp11::list whitespace_columns_(
-    std::string filename, size_t skip, ptrdiff_t n, std::string comment) {
+    const std::string& filename, size_t skip, ptrdiff_t n, const std::string& comment) {
 
   std::error_code error;
   auto mmap = make_mmap_source(filename.c_str(), error);
@@ -103,7 +114,12 @@ std::vector<bool> find_empty_cols(Iterator begin, Iterator end, ptrdiff_t n) {
     return cpp11::list();
   }
 
-  size_t s = find_first_line(mmap, skip, comment.data());
+  size_t s = find_first_line(
+      mmap,
+      skip,
+      comment.data(),
+      /* skip_empty_rows */ true,
+      /* embedded_nl */ false);
 
   std::vector<bool> empty = find_empty_cols(mmap.begin() + s, mmap.end(), n);
   std::vector<int> begin, end;

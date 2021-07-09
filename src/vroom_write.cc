@@ -268,24 +268,24 @@ void write_buf_con(const std::vector<char>& buf, SEXP con, bool is_stdout) {
 
 std::vector<SEXPTYPE> get_types(const cpp11::list& input) {
   std::vector<SEXPTYPE> out;
-  for (int col = 0; col < input.size(); ++col) {
-    out.push_back(TYPEOF(input[col]));
+  for (auto col : input) {
+    out.push_back(TYPEOF(col));
   }
   return out;
 }
 
 std::vector<void*> get_ptrs(const cpp11::list& input) {
   std::vector<void*> out;
-  for (int col = 0; col < input.size(); ++col) {
-    switch (TYPEOF(input[col])) {
+  for (auto col : input) {
+    switch (TYPEOF(col)) {
     case REALSXP:
-      out.push_back(REAL(input[col]));
+      out.push_back(REAL(col));
       break;
     case INTSXP:
-      out.push_back(INTEGER(input[col]));
+      out.push_back(INTEGER(col));
       break;
     case LGLSXP:
-      out.push_back(LOGICAL(input[col]));
+      out.push_back(LOGICAL(col));
       break;
     default:
       out.push_back(nullptr);
@@ -319,10 +319,10 @@ std::vector<char> get_header(
 }
 
 [[cpp11::register]] void vroom_write_(
-    cpp11::list input,
-    std::string filename,
+    const cpp11::list& input,
+    const std::string& filename,
     const char delim,
-    std::string eol,
+    const std::string& eol,
     const char* na_str,
     bool col_names,
     bool append,
@@ -427,10 +427,10 @@ std::vector<char> get_header(
 // TODO: Think about refactoring this so it and vroom_write_ can share some
 // code
 [[cpp11::register]] void vroom_write_connection_(
-    cpp11::list input,
-    cpp11::sexp con,
+    const cpp11::list& input,
+    const cpp11::sexp& con,
     const char delim,
-    std::string eol,
+    const std::string& eol,
     const char* na_str,
     bool col_names,
     size_t options,
@@ -521,9 +521,9 @@ std::vector<char> get_header(
 }
 
 [[cpp11::register]] cpp11::strings vroom_format_(
-    cpp11::list input,
+    const cpp11::list& input,
     const char delim,
-    std::string eol,
+    const std::string& eol,
     const char* na_str,
     bool col_names,
     size_t options) {

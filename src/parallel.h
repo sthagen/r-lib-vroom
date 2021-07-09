@@ -26,7 +26,14 @@ static std::vector<std::future<void>> parallel_for(
     size_t nb_threads,
     bool use_threads = true,
     bool cleanup = true) {
-  // -------
+
+#if !defined __APPLE__ && defined _LIBCPP_VERSION
+  nb_threads = 1;
+#endif
+
+  if (nb_threads == 1) {
+    use_threads = false;
+  }
 
   size_t batch_size = nb_elements / nb_threads;
 

@@ -29,7 +29,7 @@ NULL
 #'   either a character vector of types, `TRUE` or `FALSE`. See
 #'   [vroom_altrep()] for for full details.
 #' @param altrep_opts \Sexpr[results=rd, stage=render]{lifecycle::badge("deprecated")}
-#' @param show_col_specs Control showing the column specifications. If `TRUE`
+#' @param show_col_types Control showing the column specifications. If `TRUE`
 #'   column specifications are always show, if `FALSE` they are never shown. If
 #'   `NULL` (the default) they are shown only if an explicit specification is not
 #'   given to `col_types`.
@@ -101,6 +101,7 @@ vroom <- function(
   na = c("", "NA"),
   quote = '"',
   comment = "",
+  skip_empty_rows = TRUE,
   trim_ws = TRUE,
   escape_double = TRUE,
   escape_backslash = FALSE,
@@ -110,7 +111,7 @@ vroom <- function(
   altrep_opts = deprecated(),
   num_threads = vroom_threads(),
   progress = vroom_progress(),
-  show_col_specs = NULL,
+  show_col_types = NULL,
   .name_repair = "unique"
   ) {
 
@@ -120,6 +121,11 @@ vroom <- function(
   }
 
   file <- standardise_path(file)
+
+  if (!is_ascii_compatible(locale$encoding)) {
+    file <- reencode_path(file, locale$encoding)
+    locale$encoding <- "UTF-8"
+  }
 
   if (length(file) == 0 || (n_max == 0 & identical(col_names, FALSE))) {
     return(tibble::tibble())
@@ -143,7 +149,7 @@ vroom <- function(
 
   col_select <- vroom_enquo(rlang::enquo(col_select))
 
-  has_spec <- !is.null(col_types)
+  has_col_types <- !is.null(col_types)
 
   col_types <- as.col_spec(col_types)
 
@@ -153,7 +159,8 @@ vroom <- function(
     col_types = col_types, id = id, skip = skip, col_select = col_select,
     name_repair = .name_repair,
     na = na, quote = quote, trim_ws = trim_ws, escape_double = escape_double,
-    escape_backslash = escape_backslash, comment = comment, locale = locale,
+    escape_backslash = escape_backslash, comment = comment,
+    skip_empty_rows = skip_empty_rows, locale = locale,
     guess_max = guess_max, n_max = n_max, altrep = vroom_altrep(altrep),
     num_threads = num_threads, progress = progress)
 
@@ -161,23 +168,32 @@ vroom <- function(
   is_null <- vapply(out, is.null, logical(1))
   out[is_null] <- NULL
 
+  # If no rows expand columns to be the same length and names as the spec
+  if (NROW(out) == 0) {
+    cols <- attr(out, "spec")[["cols"]]
+    for (i in seq_along(cols)) {
+      out[[i]] <- collector_value(cols[[i]])
+    }
+    names(out) <- names(cols)
+  }
+
   out <- tibble::as_tibble(out, .name_repair = identity)
   class(out) <- c("spec_tbl_df", class(out))
 
   out <- vroom_select(out, col_select, id)
 
-  if (should_show_col_spec(has_spec, show_col_specs)) {
-    show_col_specs(out, locale)
+  if (should_show_col_types(has_col_types, show_col_types)) {
+    show_col_types(out, locale)
   }
 
   out
 }
 
-should_show_col_spec <- function(has_spec, show_col_specs) {
-  if (is.null(show_col_specs)) {
-    return(isTRUE(!has_spec))
+should_show_col_types <- function(has_col_types, show_col_types) {
+  if (is.null(show_col_types)) {
+    return(isTRUE(!has_col_types))
   }
-  isTRUE(show_col_specs)
+  isTRUE(show_col_types)
 }
 
 make_names <- function(x, len) {

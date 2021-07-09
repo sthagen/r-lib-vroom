@@ -16,6 +16,7 @@ vroom(
   na = c("", "NA"),
   quote = "\\"",
   comment = "",
+  skip_empty_rows = TRUE,
   trim_ws = TRUE,
   escape_double = TRUE,
   escape_backslash = FALSE,
@@ -25,7 +26,7 @@ vroom(
   altrep_opts = deprecated(),
   num_threads = vroom_threads(),
   progress = vroom_progress(),
-  show_col_specs = NULL,
+  show_col_types = NULL,
   .name_repair = "unique"
 )
 }
@@ -48,16 +49,18 @@ the first row of the output data frame.
 
 Missing (\code{NA}) column names will generate a warning, and be filled
 in with dummy names \code{X1}, \code{X2} etc. Duplicate column names
-will generate a warning and be made unique with a numeric suffix.}
+will generate a warning and be made unique, see \code{name_repair} to control
+how this is done.}
 
 \item{col_types}{One of \code{NULL}, a \code{\link[readr:cols]{cols()}} specification, or
 a string. See \code{vignette("readr")} for more details.
 
 If \code{NULL}, all column types will be imputed from the first 1000 rows
 on the input. This is convenient (and fast), but not robust. If the
-imputation fails, you'll need to supply the correct types yourself.
+imputation fails, you'll need to increase the \code{guess_max} or supply the
+correct types yourself.
 
-If a column specification created by \code{\link[readr:cols]{cols()}}, it must contain
+Column specifications created by \code{\link[=list]{list()}} or \code{\link[readr:cols]{cols()}} must contain
 one column specification for each column. If you only want to read a
 subset of the columns, use \code{\link[readr:cols]{cols_only()}}.
 
@@ -78,7 +81,7 @@ character represents one column:
 
 By default, reading a file without a column specification will print a
 message showing what \code{readr} guessed they were. To remove this message,
-use \code{col_types = cols()}.
+set \code{show_col_types = FALSE} or set `options(readr.show_col_types = FALSE).
 }}
 
 \item{col_select}{One or more selection expressions, like in
@@ -89,9 +92,10 @@ See \code{?dplyr::select} for details on available selection options.}
 variable with that name with the filename(s) as the value. If 'NULL', the
 default, no variable will be created.}
 
-\item{skip}{Number of lines to skip before reading data.}
+\item{skip}{Number of lines to skip before reading data. If \code{comment} is
+supplied any commented lines are ignored \emph{after} skipping.}
 
-\item{n_max}{Maximum number of records to read.}
+\item{n_max}{Maximum number of lines to read.}
 
 \item{na}{Character vector of strings to interpret as missing values. Set this
 option to \code{character()} to indicate no missing values.}
@@ -101,7 +105,11 @@ option to \code{character()} to indicate no missing values.}
 \item{comment}{A string used to identify comments. Any text after the
 comment characters will be silently ignored.}
 
-\item{trim_ws}{Should leading and trailing whitespace be trimmed from
+\item{skip_empty_rows}{Should blank rows be ignored altogether? i.e. If this
+option is \code{TRUE} then blank rows will not be represented at all.  If it is
+\code{FALSE} then they will be represented by \code{NA} values in all the columns.}
+
+\item{trim_ws}{Should leading and trailing whitespace (ASCII spaces and tabs) be trimmed from
 each field before parsing it?}
 
 \item{escape_double}{Does the file escape quotes by doubling them?
@@ -119,7 +127,7 @@ The default locale is US-centric (like R), but you can use
 the default time zone, encoding, decimal mark, big mark, and day/month
 names.}
 
-\item{guess_max}{Maximum number of records to use for guessing column types.}
+\item{guess_max}{Maximum number of lines to use for guessing column types.}
 
 \item{altrep}{Control which column types use Altrep representations,
 either a character vector of types, \code{TRUE} or \code{FALSE}. See
@@ -132,12 +140,11 @@ vectors. If your data contains newlines within fields the parser will
 automatically be forced to use a single thread only.}
 
 \item{progress}{Display a progress bar? By default it will only display
-in an interactive session and not while knitting a document. The display
-is updated every 50,000 values and will only display if estimated reading
-time is 5 seconds or more. The automatic progress bar can be disabled by
-setting option \code{readr.show_progress} to \code{FALSE}.}
+in an interactive session and not while knitting a document. The automatic
+progress bar can be disabled by setting option \code{readr.show_progress} to
+\code{FALSE}.}
 
-\item{show_col_specs}{Control showing the column specifications. If \code{TRUE}
+\item{show_col_types}{Control showing the column specifications. If \code{TRUE}
 column specifications are always show, if \code{FALSE} they are never shown. If
 \code{NULL} (the default) they are shown only if an explicit specification is not
 given to \code{col_types}.}

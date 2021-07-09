@@ -16,6 +16,8 @@
 #' @param delim Delimiter used to separate values. Defaults to `\t` to write
 #'   tab separated value (TSV) files.
 #' @param na String used for missing values. Defaults to 'NA'.
+#' @param path `r lifecycle::badge("deprecated")` is no longer supported, use
+#'   `file` instead.
 #' @export
 #' @examples
 #' # If you only specify a file name, vroom_write() will write
@@ -34,7 +36,15 @@
 vroom_write <- function(x, file, delim = '\t', eol = "\n", na = "NA", col_names = !append,
   append = FALSE, quote = c("needed", "all", "none"), escape =
     c("double", "backslash", "none"), bom = FALSE, num_threads =
-    vroom_threads(), progress = vroom_progress()) {
+    vroom_threads(), progress = vroom_progress(), path = deprecated()) {
+
+  if (lifecycle::is_present(path)) {
+    file <- path
+    lifecycle::deprecate_soft(
+      when = "1.5.0",
+      what = "vroom_write(file)"
+    )
+  }
 
   # If there are no columns in the data frame, just return
   if (NCOL(x) == 0) {
@@ -118,15 +128,17 @@ vroom_format <- function(x, delim = "\t", eol = "\n", na = "NA", col_names = TRU
 #'
 #' @inheritParams vroom_write
 #' @export
-vroom_write_lines <- function(x, file, eol = "\n", na = "NA", append = FALSE) {
+vroom_write_lines <- function(x, file, eol = "\n", na = "NA", append = FALSE, num_threads = vroom_threads()) {
   stopifnot(is.character(x))
 
-  x <- list(x)
-  names(x) <- "X1"
+  x <- list(X1 = x)
   class(x) <- "data.frame"
-  attr(x, "row.names") <- c(-1L, length(x))
+  attr(x, "row.names") <- c(NA_integer_, -length(x[[1]]))
 
-  vroom_write(x, file = file, delim = "", eol = eol, na = na, append = append)
+  vroom_write(x, file = file, delim = "", col_names = FALSE, eol = eol, na =
+    na, append = append, quote = "none", escape = "none", num_threads =
+    num_threads
+  )
 }
 
 #' Preprocess column for output

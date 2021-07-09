@@ -34,6 +34,14 @@ inline bool is_explicit_na(SEXP na, const char* begin, const char* end) {
   return false;
 }
 
+template <typename T> struct StringAnnotationTypeMap {
+  static const std::string annotation;
+};
+
+template <> inline double na() { return NA_REAL; }
+
+template <> inline int na() { return NA_INTEGER; }
+
 template <typename V, typename F, typename I, typename C>
 static auto parse_value(
     const I& itr,
@@ -43,8 +51,13 @@ static auto parse_value(
     const char* expected,
     SEXP na) -> V {
   auto str = *itr;
+  if (is_explicit_na(na, str.begin(), str.end())) {
+    return vroom::na<V>();
+  }
+
   V out = f(str.begin(), str.end());
-  if (cpp11::is_na(out) && !is_explicit_na(na, str.begin(), str.end())) {
+
+  if (cpp11::is_na(out)) {
     errors->add_error(
         itr.index(),
         col->get_index(),
@@ -52,6 +65,35 @@ static auto parse_value(
         std::string(str.begin(), str.end() - str.begin()),
         itr.filename());
   }
+
+  return out;
+}
+
+template <typename V, typename F, typename C>
+static auto parse_value(
+    R_xlen_t i,
+    const C& col,
+    F f,
+    std::shared_ptr<vroom_errors>& errors,
+    const char* expected,
+    SEXP na) -> V {
+  auto&& str = col->at(i);
+  if (is_explicit_na(na, str.begin(), str.end())) {
+    return vroom::na<V>();
+  }
+
+  V out = f(str.begin(), str.end());
+
+  if (cpp11::is_na(out)) {
+    auto itr = col->begin() + i;
+    errors->add_error(
+        itr.index(),
+        col->get_index(),
+        expected,
+        std::string(str.begin(), str.end() - str.begin()),
+        itr.filename());
+  }
+
   return out;
 }
 } // namespace vroom

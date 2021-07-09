@@ -30,6 +30,7 @@ delimited_index_connection::delimited_index_connection(
     const size_t skip,
     size_t n_max,
     const char* comment,
+    const bool skip_empty_rows,
     const std::shared_ptr<vroom_errors> errors,
     const size_t chunk_size,
     const bool progress) {
@@ -73,14 +74,18 @@ delimited_index_connection::delimited_index_connection(
   buf[i].resize(sz + 1);
 
   if (sz == 0) {
+    std::fclose(out);
     if (should_close) {
       cpp11::package("base")["close"](in);
     }
     return;
   }
 
+  bool has_quoted_newlines = quote != '\0';
+
   // Parse header
-  size_t start = find_first_line(buf[i], skip_, comment_);
+  size_t start = find_first_line(
+      buf[i], skip_, comment_, skip_empty_rows, has_quoted_newlines);
 
   if (delim == nullptr) {
     delim_ = std::string(1, guess_delim(buf[i], start, 5, sz));
@@ -90,7 +95,8 @@ delimited_index_connection::delimited_index_connection(
 
   delim_len_ = delim_.length();
 
-  size_t first_nl = find_next_newline(buf[i], start);
+  size_t first_nl = find_next_newline(
+      buf[i], start, comment, skip_empty_rows, has_quoted_newlines);
 
   bool single_line = first_nl == buf[i].size() - 1;
 
@@ -116,9 +122,6 @@ delimited_index_connection::delimited_index_connection(
     }
   }
 
-  // Check for windows newlines
-  windows_newlines_ = first_nl > 0 && buf[i][first_nl - 1] == '\r';
-
   std::unique_ptr<RProgress::RProgress> pb = nullptr;
   if (progress_) {
     pb = std::unique_ptr<RProgress::RProgress>(
@@ -141,6 +144,7 @@ delimited_index_connection::delimited_index_connection(
       delim_.c_str(),
       quote,
       comment_,
+      skip_empty_rows,
       state,
       start,
       first_nl + 1,
@@ -180,6 +184,7 @@ delimited_index_connection::delimited_index_connection(
             delim_.c_str(),
             quote,
             comment_,
+            skip_empty_rows,
             state,
             first_nl + 1,
             sz,
@@ -250,11 +255,7 @@ delimited_index_connection::delimited_index_connection(
       idx_[0].push_back(file_size);
       ++columns_;
     } else {
-      if (windows_newlines_) {
-        idx_[1].push_back(file_size + 1);
-      } else {
-        idx_[1].push_back(file_size);
-      }
+      idx_[1].push_back(file_size);
     }
   }
 

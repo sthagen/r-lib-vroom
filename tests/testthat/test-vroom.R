@@ -177,6 +177,7 @@ test_that("vroom handles UTF byte order marks", {
 })
 
 test_that("vroom handles vectors shorter than the UTF byte order marks", {
+  skip_on_os("solaris")
 
   expect_equal(
     charToRaw(vroom(as.raw(c(0xef, 0xbb, 0x0A)), delim = "\n", col_names = FALSE, col_types = list())[[1]]),
@@ -337,7 +338,7 @@ test_that("vroom uses the number of rows when guess_max = Inf", {
   vroom_write(df, tf, delim = "\t")
 
   # The type should be guessed wrong, because the character comes at the end
-  res <- expect_warning(vroom(tf, delim = "\t", col_types = list(), altrep = FALSE))
+  expect_warning(res <- vroom(tf, delim = "\t", col_types = list(), altrep = FALSE))
   expect_type(res[["x"]], "double")
   expect_true(is.na(res[["x"]][[NROW(res)]]))
 
@@ -373,8 +374,9 @@ test_that("guess_type works with long strings (#74)", {
   )
 })
 
-test_that("vroom errors if unnamed column types do not match the number of columns", {
-  expect_error(vroom(I("a,b\n1,2\n"), col_types = "i"), "must have the same length")
+test_that("vroom guesses types if unnamed column types do not match the number of columns", {
+  test_vroom(I("a,b\n1,2\n"), delim = ",", col_types = "i",
+    equals = tibble::tibble(a = 1L, b = 2L))
 })
 
 test_that("column names are properly encoded", {
@@ -385,7 +387,7 @@ test_that("column names are properly encoded", {
 })
 
 test_that("Files with windows newlines and missing fields work", {
-  test_vroom("a,b,c,d\r\nm,\r\n\r\n", delim = ",",
+  test_vroom("a,b,c,d\r\nm,\r\n\r\n", delim = ",", skip_empty_rows = FALSE,
     equals = tibble::tibble(a = c("m", NA), b = c(NA, NA), c = c(NA, NA), d = c(NA, NA))
   )
 })
@@ -605,4 +607,167 @@ test_that("name repair with custom functions works", {
   }
   out <- vroom(I("x,y,z\n1,2,3"), col_types = "iii", .name_repair = add_y)
   expect_equal(colnames(out), c("x_y", "y_y", "z_y"))
+})
+
+test_that("col_types are based on the final (possibly repaired) column names (#311)", {
+  suppressMessages(
+    out <- vroom(I("x,\n1,2\n3,4"), delim = ",", col_types = list(x = col_double(), "...2" = col_double()))
+  )
+  expect_equal(out[["...2"]], c(2, 4))
+})
+
+test_that("mismatched column names throw a classed warning", {
+  expect_warning(
+    vroom(
+      I("x,y\n1,2\n3,4\n"),
+      col_types = list(
+        x = col_double(),
+        y = col_double(),
+        z = col_double()
+      )
+    ),
+    class = "vroom_mismatched_column_name"
+  )
+})
+
+test_that("empty files still generate the correct column width and types", {
+  out <- vroom(I(""), col_names = c("foo", "bar"), col_types = list())
+  expect_equal(nrow(out), 0)
+  expect_equal(ncol(out), 2)
+  expect_equal(names(out), c("foo", "bar"))
+  expect_type(out[[1]], "character")
+  expect_type(out[[2]], "character")
+
+  out <- vroom(I(""), col_types = "ii")
+  expect_equal(nrow(out), 0)
+  expect_equal(ncol(out), 2)
+  expect_equal(names(out), c("X1", "X2"))
+  expect_type(out[[1]], "integer")
+  expect_type(out[[2]], "integer")
+})
+
+test_that("leading whitespace effects guessing", {
+  out <- vroom(I('a,b,c\n 1,2,3\n'), delim = ",", trim_ws = FALSE, progress = FALSE, col_types = list())
+  expect_type(out[[1]], "character")
+
+  out <- vroom(I('a,b,c\n 1,2,3\n'), delim = ",", trim_ws = TRUE, progress = FALSE, col_types = list())
+  expect_type(out[[1]], "double")
+})
+
+test_that("UTF-16LE encodings can be read", {
+  bom <- as.raw(c(255, 254))
+  # This is the text.
+  text <- "x,y\n\U104371,2\n" # This is a 4 byte UTF-16 character from https://en.wikipedia.org/wiki/UTF-16
+
+  # Converted to UTF-16LE
+  text_utf16 <- iconv(text,from="UTF-8", to="UTF-16LE", toRaw = TRUE)[[1]]
+
+  # Write the BOM and the text to a file
+  tmp_file_name <- tempfile()
+  fd <- file(tmp_file_name, "wb")
+  writeBin(bom, fd)
+  writeBin(text_utf16, fd)
+  close(fd)
+
+  # Whether LE or BE is determined automatically by the BOM
+  out <- vroom(tmp_file_name, locale = locale(encoding = "UTF-16"), col_types = "ci")
+  expect_equal(out$x, "\U104371")
+  expect_equal(out$y, 2)
+})
+
+test_that("supports unicode grouping and decimal marks (https://github.com/tidyverse/readr/issues/796)", {
+  test_vroom(I("1\u00A0234\u02D95"),
+    locale = locale(grouping_mark = "\u00A0", decimal_mark = "\u02D9"),
+    col_types = "n", col_names = FALSE, delim = ",",
+    equals = tibble::tibble(X1 = 1234.5)
+  )
+})
+
+test_that("handles quotes within skips", {
+
+  data <- I(paste0(collapse = "\n",
+    c("a\tb\tc",
+      "1a\t1b\t1c",
+      "2a\t2b\t2c\"",
+      "3a\t3b\t3c\"",
+      "4a\t4b\t4c"
+  )))
+
+  test_vroom(data, col_names = c("a", "b", "c"), skip = 2, quote = "", delim = "\t",
+    equals = tibble::tibble(
+      a = c("2a", "3a", "4a"),
+      b = c("2b", "3b", "4b"),
+      c = c("2c\"", "3c\"", "4c")
+    )
+  )
+
+  test_vroom(data, col_names = c("a", "b", "c"), skip = 3, quote = "", delim = "\t",
+    equals = tibble::tibble(
+      a = c("3a", "4a"),
+      b = c("3b", "4b"),
+      c = c("3c\"", "4c")
+    )
+  )
+
+  test_vroom(data, col_names = c("a", "b", "c"), skip = 4, quote = "", delim = "\t",
+    equals = tibble::tibble(
+      a = c("4a"),
+      b = c("4b"),
+      c = c("4c")
+    )
+  )
+})
+
+test_that("skipped columns retain their name", {
+  test_vroom(I("1,2,3\n4,5,6"), col_names = "x", col_types = "i__",
+    equals = tibble::tibble(
+      x = c(1L, 4L)
+    ))
+
+  test_vroom(I("1,2,3\n4,5,6"), col_names = "y", col_types = "_i_",
+    equals = tibble::tibble(
+      y = c(2L, 5L)
+    ))
+
+  test_vroom(I("1,2,3\n4,5,6"), col_names = "z", col_types = "__i",
+    equals = tibble::tibble(
+      z = c(3L, 6L)
+    ))
+
+  test_vroom(I("1,2,3\n4,5,6"), col_names = c("x", "z"), col_types = "i_i",
+    equals = tibble::tibble(
+      x = c(1L, 4L),
+      z = c(3L, 6L)
+    ))
+})
+
+test_that("skipped columns retain their name", {
+  test_vroom(I("1,2,3\n4,5,6"), col_names = "x", col_types = "i__",
+    equals = tibble::tibble(
+      x = c(1L, 4L)
+    ))
+
+  test_vroom(I("1,2,3\n4,5,6"), col_names = "y", col_types = "_i_",
+    equals = tibble::tibble(
+      y = c(2L, 5L)
+    ))
+
+  test_vroom(I("1,2,3\n4,5,6"), col_names = "z", col_types = "__i",
+    equals = tibble::tibble(
+      z = c(3L, 6L)
+    ))
+
+  test_vroom(I("1,2,3\n4,5,6"), col_names = c("x", "z"), col_types = "i_i",
+    equals = tibble::tibble(
+      x = c(1L, 4L),
+      z = c(3L, 6L)
+    ))
+})
+
+test_that("unnamed column types can be less than the number of columns", {
+  test_vroom("x,y\n1,2\n", col_types = "i",
+    equals = tibble::tibble(
+      x = 1L,
+      y = 2L
+    ))
 })

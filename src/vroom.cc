@@ -14,28 +14,31 @@
 #include <algorithm>
 #include <memory>
 #include <numeric>
+#include <utility>
+
 
 #include "unicode_fopen.h"
 #include "vroom_errors.h"
 
 [[cpp11::register]] SEXP vroom_(
-    cpp11::list inputs,
+    const cpp11::list& inputs,
     SEXP delim,
     const char quote,
     bool trim_ws,
     bool escape_double,
     bool escape_backslash,
     const char* comment,
+    const bool skip_empty_rows,
     size_t skip,
     ptrdiff_t n_max,
     bool progress,
-    cpp11::sexp col_names,
+    const cpp11::sexp& col_names,
     cpp11::sexp col_types,
     cpp11::sexp col_select,
     cpp11::sexp name_repair,
     SEXP id,
-    cpp11::strings na,
-    cpp11::list locale,
+    const cpp11::strings& na,
+    const cpp11::list& locale,
     ptrdiff_t guess_max,
     size_t num_threads,
     size_t altrep) {
@@ -66,6 +69,7 @@
       skip,
       n_max,
       comment,
+      skip_empty_rows,
       *errors,
       num_threads,
       progress);
@@ -75,9 +79,9 @@
   return create_columns(
       idx,
       col_names,
-      col_types,
-      col_select,
-      name_repair,
+      std::move(col_types),
+      std::move(col_select),
+      std::move(name_repair),
       id,
       filenames,
       na,
@@ -88,14 +92,14 @@
       num_threads);
 }
 
-[[cpp11::register]] bool has_trailing_newline(cpp11::strings filename) {
+[[cpp11::register]] bool has_trailing_newline(const cpp11::strings& filename) {
   std::FILE* f = unicode_fopen(CHAR(filename[0]), "rb");
 
   if (!f) {
     return true;
   }
 
-  std::setvbuf(f, NULL, _IONBF, 0);
+  std::setvbuf(f, nullptr, _IONBF, 0);
 
   fseek(f, -1, SEEK_END);
   char c = fgetc(f);
@@ -105,7 +109,7 @@
   return c == '\n';
 }
 
-[[cpp11::register]] SEXP vroom_rle(cpp11::integers input) {
+[[cpp11::register]] SEXP vroom_rle(const cpp11::integers& input) {
 #ifdef HAS_ALTREP
   return vroom_rle::Make(input);
 #else

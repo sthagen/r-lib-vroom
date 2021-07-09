@@ -6,29 +6,30 @@
 #include "LocaleInfo.h"
 #include "r_utils.h"
 
+#include "vroom_dbl.h"
 #include "vroom_lgl.h"
 #include "vroom_num.h"
 
 typedef bool (*canParseFun)(const std::string&, LocaleInfo* pLocale);
 
 bool canParse(
-    cpp11::strings x, const canParseFun& canParse, LocaleInfo* pLocale) {
-  for (int i = 0; i < x.size(); ++i) {
-    if (x[i] == NA_STRING)
+    const cpp11::strings& x, const canParseFun& canParse, LocaleInfo* pLocale) {
+  for (auto && i : x) {
+    if (i == NA_STRING)
       continue;
 
-    if (x[i].size() == 0)
+    if (i.size() == 0)
       continue;
 
-    if (!canParse(std::string(x[i]), pLocale))
+    if (!canParse(std::string(i), pLocale))
       return false;
   }
   return true;
 }
 
-bool allMissing(cpp11::strings x) {
-  for (int i = 0; i < x.size(); ++i) {
-    if (x[i] != NA_STRING && x[i].size() > 0)
+bool allMissing(const cpp11::strings& x) {
+  for (auto && i : x) {
+    if (i != NA_STRING && i.size() > 0)
       return false;
   }
   return true;
@@ -42,7 +43,8 @@ bool isLogical(const std::string& x, LocaleInfo* /* pLocale */) {
 
 bool isNumber(const std::string& x, LocaleInfo* pLocale) {
   // Leading zero not followed by decimal mark
-  if (x[0] == '0' && x.size() > 1 && x[1] != pLocale->decimalMark_)
+  if (x[0] == '0' && x.size() > 1 &&
+      !matches(x.data() + 1, x.data() + x.size(), pLocale->decimalMark_))
     return false;
 
   auto str = vroom::string(x);
@@ -64,15 +66,13 @@ bool isInteger(const std::string& x, LocaleInfo* /* pLocale */) {
 
 bool isDouble(const std::string& x, LocaleInfo* pLocale) {
   // Leading zero not followed by decimal mark
-  if (x[0] == '0' && x.size() > 1 && x[1] != pLocale->decimalMark_)
+  if (x[0] == '0' && x.size() > 1 && x[1] != pLocale->decimalMark_[0])
     return false;
 
-  double res = 0;
-  std::string::const_iterator begin = x.begin(), end = x.end();
+  double res =
+      bsd_strtod(x.data(), x.data() + x.size(), pLocale->decimalMark_[0]);
 
-  bool ok = parseDouble(pLocale->decimalMark_, begin, end, res);
-
-  return ok && begin == end;
+  return !ISNA(res);
 }
 
 bool isTime(const std::string& x, LocaleInfo* pLocale) {
@@ -104,7 +104,7 @@ static bool isDateTime(const std::string& x, LocaleInfo* pLocale) {
 
 std::string guess_type__(
     cpp11::writable::strings input,
-    cpp11::strings na,
+    const cpp11::strings& na,
     LocaleInfo* pLocale,
     bool guess_integer = false) {
 
@@ -116,10 +116,10 @@ std::string guess_type__(
     return "logical";
   }
 
-  for (R_xlen_t i = 0; i < input.size(); ++i) {
-    for (R_xlen_t j = 0; j < na.size(); ++j) {
-      if (input[i] == na[j]) {
-        input[i] = NA_STRING;
+  for (auto && i : input) {
+    for (auto && j : na) {
+      if (i == j) {
+        i = NA_STRING;
         break;
       }
     }
@@ -146,9 +146,9 @@ std::string guess_type__(
 }
 
 [[cpp11::register]] std::string guess_type_(
-    cpp11::strings input,
-    cpp11::strings na,
-    cpp11::list locale,
+    const cpp11::strings& input,
+    const cpp11::strings& na,
+    const cpp11::list& locale,
     bool guess_integer = false) {
   LocaleInfo locale_(locale);
   return guess_type__(input, na, &locale_, guess_integer);

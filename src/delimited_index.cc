@@ -32,6 +32,7 @@ delimited_index::delimited_index(
     const size_t skip,
     size_t n_max,
     const char* comment,
+    const bool skip_empty_rows,
     std::shared_ptr<vroom_errors> errors,
     size_t num_threads,
     bool progress,
@@ -76,7 +77,10 @@ delimited_index::delimited_index(
     return;
   }
 
-  size_t start = find_first_line(mmap_, skip_, comment_);
+  bool has_quoted_newlines = quote != '\0';
+
+  size_t start = find_first_line(
+      mmap_, skip_, comment_, skip_empty_rows, has_quoted_newlines);
 
   // If an empty file, or a file with only a newline.
   if (start >= file_size - 1) {
@@ -95,14 +99,13 @@ delimited_index::delimited_index(
 
   delim_len_ = delim_.length();
 
-  size_t first_nl = find_next_newline(mmap_, start, true);
-  size_t second_nl = find_next_newline(mmap_, first_nl + 1, true);
+  size_t first_nl = find_next_newline(
+      mmap_, start, comment_, skip_empty_rows, has_quoted_newlines);
+  size_t second_nl = find_next_newline(
+      mmap_, first_nl + 1, comment, skip_empty_rows, has_quoted_newlines);
   size_t one_row_size = second_nl - first_nl;
   size_t guessed_rows =
       one_row_size > 0 ? (file_size - first_nl) / one_row_size * 1.1 : 0;
-
-  // Check for windows newlines
-  windows_newlines_ = first_nl > 0 && mmap_[first_nl - 1] == '\r';
 
   std::unique_ptr<multi_progress> pb = nullptr;
 
@@ -147,6 +150,7 @@ start_indexing:
         delim_.c_str(),
         quote,
         comment_,
+        skip_empty_rows,
         state,
         start,
         first_nl + 1,
@@ -158,7 +162,9 @@ start_indexing:
         pb,
         num_threads,
         -1);
-    columns_ = idx_[0].size() - 1;
+    if (idx_[0].size() > 0) {
+      columns_ = idx_[0].size() - 1;
+    }
 
     std::vector<std::future<void>> threads;
 
@@ -171,6 +177,7 @@ start_indexing:
             delim_.c_str(),
             quote,
             comment_,
+            skip_empty_rows,
             state,
             first_nl + 1,
             file_size,
@@ -188,8 +195,13 @@ start_indexing:
           file_size - first_nl,
           [&](size_t start, size_t end, size_t id) {
             idx_[id + 1].reserve((guessed_rows / num_threads) * columns_);
-            start = find_next_newline(mmap_, first_nl + start, false) + 1;
-            end = find_next_newline(mmap_, first_nl + end, false) + 1;
+            start =
+                find_next_newline(
+                    mmap_, first_nl + start, comment, skip_empty_rows, false) +
+                1;
+            end = find_next_newline(
+                      mmap_, first_nl + end, comment, skip_empty_rows, false) +
+                  1;
             size_t cols = 0;
             csv_state state = RECORD_START;
             index_region(
@@ -198,6 +210,7 @@ start_indexing:
                 delim_.c_str(),
                 quote,
                 comment_,
+                skip_empty_rows,
                 state,
                 start,
                 end,
@@ -282,21 +295,33 @@ const string delimited_index::get_escaped_string(
   }
 
   std::string out;
-  out.reserve(end - begin);
+  bool needs_escaping = false;
+  auto cur = begin;
+  auto prev = begin;
 
-  while (begin < end) {
-    if ((escape_double_ && has_quote && *begin == quote_) ||
-        (escape_backslash_ && *begin == '\\')) {
-      ++begin;
+  while (cur < end) {
+    if ((escape_double_ && has_quote && *cur == quote_) ||
+        (escape_backslash_ && *cur == '\\')) {
+      if (!needs_escaping) {
+        out.reserve(end - begin);
+        needs_escaping = true;
+      }
+      std::copy(prev, cur, std::back_inserter(out));
+      ++cur;
+      prev = cur;
     }
-
-    out.push_back(*begin++);
+    ++cur;
   }
 
-  return out;
+  if (needs_escaping) {
+    std::copy(prev, cur, std::back_inserter(out));
+    return out;
+  }
+
+  return {begin, end};
 }
 
-inline std::pair<const char*, const char*>
+inline std::pair<size_t, size_t>
 delimited_index::get_cell(size_t i, bool is_first) const {
 
   auto oi = i;
@@ -314,7 +339,7 @@ delimited_index::get_cell(size_t i, bool is_first) const {
       auto start = idx[i];
       auto end = idx[i + 1];
       if (start == end) {
-        return {mmap_.data() + start, mmap_.data() + end};
+        return {start, end};
       }
       // By relying on 0 and 1 being true and false we can remove a branch
       // here, which improves performance a bit, as this function is called a
@@ -325,7 +350,7 @@ delimited_index::get_cell(size_t i, bool is_first) const {
 
       // REprintf(
       //"oi: %i ni: %i i: %i start: %i end: %i\n", oi, ni, i, start, end);
-      return {mmap_.data() + start, mmap_.data() + end};
+      return {start, end};
     }
 
     i -= sz;
@@ -342,10 +367,21 @@ delimited_index::get_cell(size_t i, bool is_first) const {
 const string
 delimited_index::get_trimmed_val(size_t i, bool is_first, bool is_last) const {
 
-  const char* begin;
-  const char* end;
+  size_t begin_p;
+  size_t end_p;
 
-  std::tie(begin, end) = get_cell(i, is_first);
+  std::tie(begin_p, end_p) = get_cell(i, is_first);
+  const char* begin = mmap_.data() + begin_p;
+  const char* end = mmap_.data() + end_p;
+
+  // Check for windows newlines if the last column */
+  if (is_last) {
+    if (begin < end) {
+      if (*(end - 1) == '\r') {
+        --end;
+      }
+    }
+  }
 
   if (trim_ws_) {
     trim_whitespace(begin, end);

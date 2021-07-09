@@ -6,6 +6,8 @@
 #include "index.h"
 #include "index_collection.h"
 #include <memory>
+#include <utility>
+
 
 #include "r_utils.h"
 
@@ -16,7 +18,7 @@ using namespace vroom;
 index_collection::full_iterator::full_iterator(
     std::shared_ptr<const index_collection> idx, size_t column)
     : i_(0),
-      idx_(idx),
+      idx_(std::move(idx)),
       column_(column),
       start_(0),
       end_(idx_->indexes_.size() - 1) {
@@ -124,7 +126,7 @@ string index_collection::full_iterator::at(ptrdiff_t n) const {
 }
 
 std::shared_ptr<vroom::index> make_delimited_index(
-    cpp11::sexp in,
+    const cpp11::sexp& in,
     const char* delim,
     const char quote,
     const bool trim_ws,
@@ -134,7 +136,8 @@ std::shared_ptr<vroom::index> make_delimited_index(
     const size_t skip,
     const size_t n_max,
     const char* comment,
-    std::shared_ptr<vroom_errors> errors,
+    const bool skip_empty_rows,
+    const std::shared_ptr<vroom_errors>& errors,
     const size_t num_threads,
     const bool progress) {
 
@@ -156,6 +159,7 @@ std::shared_ptr<vroom::index> make_delimited_index(
         skip,
         n_max,
         comment,
+        skip_empty_rows,
         errors,
         get_env("VROOM_CONNECTION_SIZE", 1 << 17),
         progress);
@@ -173,14 +177,15 @@ std::shared_ptr<vroom::index> make_delimited_index(
       skip,
       n_max,
       comment,
+      skip_empty_rows,
       errors,
       num_threads,
       progress);
 }
 
 void check_column_consistency(
-    std::shared_ptr<vroom::index> first,
-    std::shared_ptr<vroom::index> check,
+    const std::shared_ptr<vroom::index>& first,
+    const std::shared_ptr<vroom::index>& check,
     bool has_header,
     size_t i) {
 
@@ -223,7 +228,7 @@ void check_column_consistency(
 
 // Index_collection
 index_collection::index_collection(
-    cpp11::list in,
+    const cpp11::list& in,
     const char* delim,
     const char quote,
     const bool trim_ws,
@@ -233,7 +238,8 @@ index_collection::index_collection(
     const size_t skip,
     const size_t n_max,
     const char* comment,
-    std::shared_ptr<vroom_errors> errors,
+    const bool skip_empty_rows,
+    const std::shared_ptr<vroom_errors>& errors,
     const size_t num_threads,
     const bool progress)
     : rows_(0), columns_(0) {
@@ -249,6 +255,7 @@ index_collection::index_collection(
       skip,
       n_max,
       comment,
+      skip_empty_rows,
       errors,
       num_threads,
       progress);
@@ -270,6 +277,7 @@ index_collection::index_collection(
         skip,
         n_max,
         comment,
+        skip_empty_rows,
         errors,
         num_threads,
         progress);
@@ -283,12 +291,13 @@ index_collection::index_collection(
 }
 
 std::shared_ptr<vroom::index> make_fixed_width_index(
-    cpp11::sexp in,
+    const cpp11::sexp& in,
     const std::vector<int>& col_starts,
     const std::vector<int>& col_ends,
     const bool trim_ws,
     const size_t skip,
     const char* comment,
+    const bool skip_empty_rows,
     const size_t n_max,
     const bool progress) {
 
@@ -306,6 +315,7 @@ std::shared_ptr<vroom::index> make_fixed_width_index(
         trim_ws,
         skip,
         comment,
+        skip_empty_rows,
         n_max,
         progress,
         get_env("VROOM_CONNECTION_SIZE", 1 << 17));
@@ -318,24 +328,34 @@ std::shared_ptr<vroom::index> make_fixed_width_index(
         trim_ws,
         skip,
         comment,
+        skip_empty_rows,
         n_max,
         progress);
   }
 }
 
 index_collection::index_collection(
-    cpp11::list in,
+    const cpp11::list& in,
     const std::vector<int>& col_starts,
     const std::vector<int>& col_ends,
     const bool trim_ws,
     const size_t skip,
     const char* comment,
+    const bool skip_empty_rows,
     const size_t n_max,
     const bool progress)
     : rows_(0), columns_(0) {
 
   auto first = make_fixed_width_index(
-      in[0], col_starts, col_ends, trim_ws, skip, comment, n_max, progress);
+      in[0],
+      col_starts,
+      col_ends,
+      trim_ws,
+      skip,
+      comment,
+      skip_empty_rows,
+      n_max,
+      progress);
 
   columns_ = first->num_columns();
   rows_ = first->num_rows();
@@ -344,7 +364,15 @@ index_collection::index_collection(
 
   for (int i = 1; i < in.size(); ++i) {
     auto idx = make_fixed_width_index(
-        in[i], col_starts, col_ends, trim_ws, skip, comment, n_max, progress);
+        in[i],
+        col_starts,
+        col_ends,
+        trim_ws,
+        skip,
+        comment,
+        skip_empty_rows,
+        n_max,
+        progress);
 
     check_column_consistency(first, idx, false, i);
 

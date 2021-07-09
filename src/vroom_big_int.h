@@ -6,11 +6,15 @@
 
 #define NA_INTEGER64 (0x8000000000000000)
 
+#include "vroom.h"
+
 namespace cpp11 {
-inline bool is_na(long long x) {
-  return x == static_cast<long long>(NA_INTEGER64);
-}
+inline bool is_na(long long x) { return x == NA_INTEGER64; }
 } // namespace cpp11
+
+namespace vroom {
+template <> inline long long na<long long>() { return NA_INTEGER64; }
+} // namespace vroom
 
 #include "vroom_vec.h"
 
@@ -86,12 +90,7 @@ public:
 
     vroom_big_int_t res;
     res.ll = parse_value<long long>(
-        info.column->begin() + i,
-        info.column,
-        vroom_strtoll,
-        info.errors,
-        "a big integer",
-        *info.na);
+        i, info.column, vroom_strtoll, info.errors, "a big integer", *info.na);
 
     info.errors->warn_for_errors();
 

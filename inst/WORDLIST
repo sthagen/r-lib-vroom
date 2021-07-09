@@ -12,9 +12,11 @@ bzip
 centric
 chriswhong
 cpp
+CMD
 Codecov
 csv
 datetime
+de
 dbi
 delim
 Dowle
@@ -26,6 +28,7 @@ fread
 funder
 fwf
 Gabe
+gcc
 github
 grisu
 gz
@@ -37,10 +40,13 @@ Kalibera
 KiB
 knitr
 lbzip
+libc
+libstdc
 Lifecycle
-localtime
+macOS
 mandreyel
 mio
+mis
 mtcars
 multithreaded
 natively
@@ -53,10 +59,12 @@ pigz
 pixz
 POSIXct
 Preprocess
+purrr
 Rcpp
 Rdatatable
 readr
 recognised
+relicensing
 rmarkdown
 Romain
 RStudio's
@@ -64,10 +72,13 @@ RStudio’s
 stringi
 testthat
 tibble
+tidyverse
 Tierney
 tokenizer
 tsv
 tz
+tzdb
+unicode
 UNK
 xz
 rchk
@@ -82,4 +93,5 @@ www
 deterministically
 UseR
 xlarge
+xzip
 Zstandard

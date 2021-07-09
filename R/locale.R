@@ -50,13 +50,13 @@ locale <- function(date_names = "en",
     decimal_mark <- if (grouping_mark == ".") "," else "."
   }
 
-  stopifnot(decimal_mark %in% c(".", ","))
+  stopifnot(is.character(decimal_mark), length(decimal_mark) == 1)
   stopifnot(is.character(grouping_mark), length(grouping_mark) == 1)
   if (decimal_mark == grouping_mark) {
     stop("`decimal_mark` and `grouping_mark` must be different", call. = FALSE)
   }
 
-  check_tz(tz)
+  tz <- check_tz(tz)
   check_encoding(encoding)
 
   structure(
@@ -102,13 +102,19 @@ default_locale <- function() {
 check_tz <- function(x) {
   stopifnot(is.character(x), length(x) == 1)
 
-  if (identical(x, ""))
-    return(TRUE)
+  if (identical(x, "")) {
+    x <- Sys.timezone()
 
-  if (x %in% OlsonNames())
-    return(TRUE)
+    if (identical(x, "") || identical(x, NA_character_)) {
+      x <- "UTC"
+    }
+  }
 
-  stop("Unknown TZ ", x, call. = FALSE)
+  if (x %in% tzdb::tzdb_names()) {
+    x
+  } else {
+    stop("Unknown TZ ", x, call. = FALSE)
+  }
 }
 check_encoding <- function(x) {
   stopifnot(is.character(x), length(x) == 1)

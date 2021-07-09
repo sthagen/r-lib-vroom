@@ -3,6 +3,8 @@
 }
 
 .onLoad <- function(...) {
+  tzdb::tzdb_initialize()
+
   # only register conflicting S3 methods if readr is not already loaded.
   if (!"readr" %in% loadedNamespaces()) {
     s3_register("base::format", "col_spec")
@@ -11,6 +13,9 @@
     s3_register("base::print", "date_names")
     s3_register("base::print", "locale")
     s3_register("utils::str", "col_spec")
+    s3_register("base::all.equal", "spec_tbl_df")
+    s3_register("base::as.data.frame", "spec_tbl_df")
+    s3_register("tibble::as_tibble", "spec_tbl_df")
     s3_register("testthat::compare", "spec_tbl_df")
     s3_register("waldo::compare_proxy", "spec_tbl_df")
   }
