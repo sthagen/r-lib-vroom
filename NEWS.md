@@ -1,5 +1,9 @@
 # vroom (development version)
 
+* `vroom()` now always includes the last row when guessing (#352)
+
+# vroom 1.5.2
+
 * `vroom()` now supports inputs with unnamed column types that are less than the number of columns (#296)
 
 * `vroom()` now outputs the correct column names even in the presence of skipped columns (#293, [tidyverse/readr#1215](https://github.com/tidyverse/readr/issues/1215))
