@@ -1,13 +1,15 @@
-test_that("empty columns just return themselves without writing anything", {
+test_that("empty columns create an empty file", {
   out <- tempfile()
 
   no_cols <- mtcars[, FALSE]
   no_rows_or_cols <- mtcars[FALSE, FALSE]
 
   expect_equal(vroom_write(no_cols, out), no_cols)
-  expect_equal(vroom_write(no_rows_or_cols, out), no_rows_or_cols)
+  expect_true(file.exists(out))
+  unlink(out)
 
-  expect_false(file.exists(out))
+  expect_equal(vroom_write(no_rows_or_cols, out), no_rows_or_cols)
+  expect_true(file.exists(out))
 })
 
 test_that("empty rows print the headers", {
@@ -243,4 +245,27 @@ test_that("vroom_write_lines() does not escape or quote lines", {
 
   vroom::vroom_write_lines(c('"foo"', "bar"), f)
   expect_equal(vroom_lines(f), c('"foo"', "bar"))
+})
+
+test_that("vroom_write() always outputs in UTF-8", {
+  x <- iconv(c("ao\u00FBt", "\u00E9l\u00E8ve", "\u00E7a va"), "UTF-8", "latin1")
+
+  data <- tibble::tibble(X = x)
+  names(data) <- iconv("fran\u00E7aise", "UTF-8", "latin1")
+
+  f <- tempfile()
+  vroom_write(data, f, delim = ",")
+
+  expected_data <- charToRaw(
+    paste0(collapse = "\n",
+      c(
+        enc2utf8(names(data)),
+        enc2utf8(data[[1]]),
+        "")
+    )
+  )
+
+  actual_data <- readBin(f, "raw", file.size(f))
+
+  expect_equal(actual_data, expected_data)
 })

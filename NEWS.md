@@ -1,5 +1,22 @@
 # vroom (development version)
 
+* `vroom()` no longer hangs if given an empty value for `locale(grouping_mark=)` (https://github.com/tidyverse/readr/issues/1241)
+
+* Fix performance regression when guessing with large numbers of rows (https://github.com/tidyverse/readr/issues/1267)
+
+# vroom 1.5.4
+
+* `vroom(col_types=)` now accepts column type names like those accepted by utils::read.table. e.g.
+    vroom::vroom(col_types = list(a = "integer", b = "double", c = "skip"))
+
+* `vroom()` now respects the `quote` parameter properly in the first two lines of the file (https://github.com/tidyverse/readr/issues/1262)
+
+* `vroom_write()` now always correctly writes its output including column names in UTF-8 (https://github.com/tidyverse/readr/issues/1242)
+
+* `vroom_write()` now creates an empty file when given a input without any columns (https://github.com/tidyverse/readr/issues/1234)
+
+# vroom 1.5.3
+
 * `vroom(col_types=)` now truncates the column types if the user passes too many types. (#355)
 
 * `vroom()` now always includes the last row when guessing (#352)
