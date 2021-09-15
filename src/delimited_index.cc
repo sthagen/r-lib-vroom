@@ -68,7 +68,7 @@ delimited_index::delimited_index(
 
   size_t file_size = mmap_.cend() - mmap_.cbegin();
 
-  if (mmap_[file_size - 1] != '\n') {
+  if (!(mmap_[file_size - 1] == '\n' || mmap_[file_size - 1] == '\r')) {
 #ifndef VROOM_STANDALONE
     REprintf("Files must end with a newline\n");
 #else
@@ -100,18 +100,22 @@ delimited_index::delimited_index(
 
   delim_len_ = delim_.length();
 
-  size_t first_nl = find_next_newline(
+  size_t first_nl, second_nl;
+  newline_type nl;
+  std::tie(first_nl, nl) = find_next_newline(
       mmap_, start, comment_, skip_empty_rows, has_quoted_newlines, quote);
-  size_t second_nl = find_next_newline(
+
+  std::tie(second_nl, std::ignore) = find_next_newline(
       mmap_,
       first_nl + 1,
       comment,
       skip_empty_rows,
       has_quoted_newlines,
       quote);
+
   size_t one_row_size = second_nl - first_nl;
   size_t guessed_rows =
-      one_row_size > 0 ? (file_size - first_nl) / one_row_size * 1.1 : 0;
+      one_row_size > 0 ? (file_size - first_nl) / (one_row_size * 1.1) : 0;
 
   std::unique_ptr<multi_progress> pb = nullptr;
 
@@ -154,6 +158,7 @@ start_indexing:
         mmap_,
         idx_[0],
         delim_.c_str(),
+        nl,
         quote,
         comment_,
         skip_empty_rows,
@@ -181,6 +186,7 @@ start_indexing:
             mmap_,
             idx_[1],
             delim_.c_str(),
+            nl,
             quote,
             comment_,
             skip_empty_rows,
@@ -200,29 +206,31 @@ start_indexing:
       threads = parallel_for(
           file_size - first_nl,
           [&](size_t start, size_t end, size_t id) {
+            newline_type nl;
             idx_[id + 1].reserve((guessed_rows / num_threads) * columns_);
-            start = find_next_newline(
-                        mmap_,
-                        first_nl + start,
-                        comment,
-                        skip_empty_rows,
-                        /* has_quote */ false,
-                        quote) +
-                    1;
-            end = find_next_newline(
-                      mmap_,
-                      first_nl + end,
-                      comment,
-                      skip_empty_rows,
-                      /* has_quote */ false,
-                      quote) +
-                  1;
+            std::tie(start, nl) = find_next_newline(
+                mmap_,
+                first_nl + start,
+                comment,
+                skip_empty_rows,
+                /* has_quote */ false,
+                quote);
+            ++start;
+            std::tie(end, std::ignore) = find_next_newline(
+                mmap_,
+                first_nl + end,
+                comment,
+                skip_empty_rows,
+                /* has_quote */ false,
+                quote);
+            ++end;
             size_t cols = 0;
             csv_state state = RECORD_START;
             index_region(
                 mmap_,
                 idx_[id + 1],
                 delim_.c_str(),
+                nl,
                 quote,
                 comment_,
                 skip_empty_rows,

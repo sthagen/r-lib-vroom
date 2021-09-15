@@ -1,5 +1,21 @@
 # vroom (development version)
 
+# vroom 1.5.5
+
+* `vroom()` now supports files with only carriage return newlines (`\r`). (#360, https://github.com/tidyverse/readr/issues/1236)
+
+* `vroom()` now parses single digit datetimes more consistently as readr has done (https://github.com/tidyverse/readr/issues/1276)
+
+* `vroom()` now parses `Inf` values as doubles (https://github.com/tidyverse/readr/issues/1283)
+
+* `vroom()` now parses `NaN` values as doubles (https://github.com/tidyverse/readr/issues/1277)
+
+* `VROOM_CONNECTION_SIZE` is now parsed as a double, which supports scientific notation (#364)
+
+* `vroom()` now works around specifying a `\n` as the delimiter (#365, https://github.com/tidyverse/dplyr/issues/5977)
+
+* `vroom()` no longer crashes if given a `col_name` and `col_type` both less than the number of columns (https://github.com/tidyverse/readr/issues/1271)
+
 * `vroom()` no longer hangs if given an empty value for `locale(grouping_mark=)` (https://github.com/tidyverse/readr/issues/1241)
 
 * Fix performance regression when guessing with large numbers of rows (https://github.com/tidyverse/readr/issues/1267)

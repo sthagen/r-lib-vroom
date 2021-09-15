@@ -311,6 +311,7 @@ public:
       const T& source,
       idx_t& destination,
       const char* delim,
+      newline_type nlt,
       const char quote,
       const std::string& comment,
       const bool skip_empty_rows,
@@ -326,8 +327,10 @@ public:
       const size_t num_threads,
       const size_t update_size) {
 
+    const char newline = nlt == CR ? '\r' : '\n';
+
     // If there are no quotes quote will be '\0', so will just work
-    std::array<char, 6> query = {delim[0], '\n', '\\', '\0', '\0', '\0'};
+    std::array<char, 6> query = {delim[0], newline, '\\', '\0', '\0', '\0'};
     auto query_i = 3;
     if (quote != '\0') {
       query[query_i++] = quote;
@@ -387,7 +390,7 @@ public:
         ++cols;
       }
 
-      else if (c == '\n') {
+      else if (c == newline) {
         if (state ==
             QUOTED_FIELD) { // This will work as long as num_threads = 1
           if (num_threads != 1) {

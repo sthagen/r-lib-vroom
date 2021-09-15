@@ -36,7 +36,9 @@ static char guess_delim(
     end = source.size();
   }
 
-  auto nl = find_next_newline(
+  size_t nl;
+  newline_type nlt;
+  std::tie(nl, nlt) = find_next_newline(
       source,
       start,
       /* comment */ "",
@@ -47,7 +49,7 @@ static char guess_delim(
     auto str = std::string(source.data() + start, nl - start);
     lines.push_back(str);
     start = nl + 1;
-    nl = find_next_newline(
+    std::tie(nl, nlt) = find_next_newline(
         source,
         start,
         /* comment */ "",

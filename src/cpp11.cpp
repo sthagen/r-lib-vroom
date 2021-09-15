@@ -41,10 +41,10 @@ extern "C" SEXP _vroom_gen_character_(SEXP n, SEXP min, SEXP max, SEXP values, S
   END_CPP11
 }
 // guess_type.cc
-std::string guess_type_(const cpp11::strings& input, const cpp11::strings& na, const cpp11::list& locale, bool guess_integer);
+std::string guess_type_(cpp11::writable::strings input, const cpp11::strings& na, const cpp11::list& locale, bool guess_integer);
 extern "C" SEXP _vroom_guess_type_(SEXP input, SEXP na, SEXP locale, SEXP guess_integer) {
   BEGIN_CPP11
-    return cpp11::as_sexp(guess_type_(cpp11::as_cpp<cpp11::decay_t<const cpp11::strings&>>(input), cpp11::as_cpp<cpp11::decay_t<const cpp11::strings&>>(na), cpp11::as_cpp<cpp11::decay_t<const cpp11::list&>>(locale), cpp11::as_cpp<cpp11::decay_t<bool>>(guess_integer)));
+    return cpp11::as_sexp(guess_type_(cpp11::as_cpp<cpp11::decay_t<cpp11::writable::strings>>(input), cpp11::as_cpp<cpp11::decay_t<const cpp11::strings&>>(na), cpp11::as_cpp<cpp11::decay_t<const cpp11::list&>>(locale), cpp11::as_cpp<cpp11::decay_t<bool>>(guess_integer)));
   END_CPP11
 }
 // iconv_file.cc
