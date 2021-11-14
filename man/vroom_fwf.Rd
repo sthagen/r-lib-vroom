@@ -62,10 +62,10 @@ ragged fwf file), supply the last end position as NA.}
 \item{col_types}{One of \code{NULL}, a \code{\link[readr:cols]{cols()}} specification, or
 a string. See \code{vignette("readr")} for more details.
 
-If \code{NULL}, all column types will be imputed from the first 1000 rows
-on the input. This is convenient (and fast), but not robust. If the
-imputation fails, you'll need to increase the \code{guess_max} or supply the
-correct types yourself.
+If \code{NULL}, all column types will be imputed from \code{guess_max} rows
+on the input interspersed throughout the file. This is convenient (and
+fast), but not robust. If the imputation fails, you'll need to increase
+the \code{guess_max} or supply the correct types yourself.
 
 Column specifications created by \code{\link[=list]{list()}} or \code{\link[readr:cols]{cols()}} must contain
 one column specification for each column. If you only want to read a
@@ -184,6 +184,11 @@ with or or two rows as above.}
 }
 \description{
 Read a fixed width file into a tibble
+}
+\details{
+\emph{Note}: \code{fwf_empty()} cannot take a R connection such as a URL as input, as
+this would result in reading from the connection twice. In these cases it is
+better to download the file first before reading.
 }
 \examples{
 fwf_sample <- vroom_example("fwf-sample.txt")
