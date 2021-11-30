@@ -23,14 +23,6 @@ test_that("col_select with negations works", {
     c("mpg", "cyl", "disp", "drat", "qsec", "vs", "am", "gear", "carb")
   )
 
-  expect_equal(colnames(vroom(vroom_example("mtcars.csv"), col_select = -c("model", "hp", "wt"), col_types = list())),
-    c("mpg", "cyl", "disp", "drat", "qsec", "vs", "am", "gear", "carb")
-  )
-
-  expect_equal(colnames(vroom(vroom_example("mtcars.csv"), col_select = -c("model", "hp", "wt"), col_types = list())),
-    c("mpg", "cyl", "disp", "drat", "qsec", "vs", "am", "gear", "carb")
-  )
-
   expect_equal(colnames(vroom(vroom_example("mtcars.csv"), col_select = -c(model, hp, wt), col_types = list())),
     c("mpg", "cyl", "disp", "drat", "qsec", "vs", "am", "gear", "carb")
   )
@@ -70,4 +62,12 @@ test_that("col_select can select the id column", {
     vroom(vroom_example("mtcars.csv"), id = "path", col_select = list(path, model, mpg), col_types = list()),
     c("path", "model", "mpg")
   )
+})
+
+test_that("col_select works with col_names = FALSE", {
+  res <- vroom(I("foo\tbar\n1\t2\n"), col_names = FALSE, col_select = 1, col_types = list())
+  expect_equal(res[[1]], c("foo", "1"))
+
+  res2 <- vroom(I("foo\tbar\n1\t2\n"), col_names = FALSE, col_select = c(X2), col_types = list())
+  expect_equal(res2[[1]], c("bar", "2"))
 })

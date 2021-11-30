@@ -8,11 +8,7 @@
 \description{
 \if{html}{\figure{logo.png}{options: align='right' alt='logo' width='120'}}
 
-The goal of 'vroom' is to read and write data (like
-    'csv', 'tsv' and 'fwf') quickly. When reading it uses a quick initial
-    indexing step, then reads the values lazily , so only the data you
-    actually use needs to be read.  The writer formats the data in
-    parallel and writes to disk asynchronously from formatting.
+The goal of 'vroom' is to read and write data (like 'csv', 'tsv' and 'fwf') quickly. When reading it uses a quick initial indexing step, then reads the values lazily , so only the data you actually use needs to be read. The writer formats the data in parallel and writes to disk asynchronously from formatting.
 }
 \seealso{
 Useful links:
@@ -24,10 +20,11 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Jim Hester \email{jim.hester@rstudio.com} (\href{https://orcid.org/0000-0002-2739-7082}{ORCID})
+\strong{Maintainer}: Jennifer Bryan \email{jenny@rstudio.com} (\href{https://orcid.org/0000-0002-6983-2759}{ORCID})
 
 Authors:
 \itemize{
+  \item Jim Hester \email{jim.hester@rstudio.com} (\href{https://orcid.org/0000-0002-2739-7082}{ORCID})
   \item Hadley Wickham \email{hadley@rstudio.com} (\href{https://orcid.org/0000-0003-4757-117X}{ORCID})
 }
 

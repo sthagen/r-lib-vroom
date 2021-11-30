@@ -65,17 +65,17 @@ public:
           is_last_(column == (idx_->columns_ - 1)),
           i_((idx_->has_header_ * idx_->columns_) + column_) {}
     void next() override { i_ += idx_->columns_; }
-    void prev() override { i_ -= idx_->columns_; }
     void advance(ptrdiff_t n) override { i_ += idx_->columns_ * n; }
     bool equal_to(const base_iterator& it) const override {
       return i_ == static_cast<const column_iterator*>(&it)->i_;
     }
     ptrdiff_t distance_to(const base_iterator& it) const override {
-      return (static_cast<ptrdiff_t>(
-                  static_cast<const column_iterator*>(&it)->i_) -
-              static_cast<ptrdiff_t>(i_)) /
-             ptrdiff_t(idx_->columns_);
+      ptrdiff_t i = i_;
+      ptrdiff_t j = static_cast<const column_iterator*>(&it)->i_;
+      ptrdiff_t columns = idx_->columns_;
+      return (j - i) / columns;
     }
+
     string value() const override {
       return idx_->get_trimmed_val(i_, is_first_, is_last_);
     }
@@ -107,7 +107,6 @@ public:
           row_(row),
           i_((row_ + idx_->has_header_) * idx_->columns_) {}
     void next() override { ++i_; }
-    void prev() override { --i_; }
     void advance(ptrdiff_t n) override { i_ += n; }
     bool equal_to(const base_iterator& it) const override {
       return i_ == static_cast<const row_iterator*>(&it)->i_;
@@ -280,7 +279,7 @@ public:
     // Remove extra columns if there are too many
     if (cols >= num_cols) {
       errors->add_parse_error(pos, cols);
-      while (cols >= num_cols) {
+      while (cols > 0 && cols >= num_cols) {
         destination.pop_back();
         --cols;
       }
@@ -362,10 +361,14 @@ public:
 
       else if (
           state != QUOTED_FIELD && is_comment(buf + pos, buf + end, comment)) {
+
         if (state != RECORD_START) {
+
+          if (num_cols > 0 && pos > start) {
+            resolve_columns(
+                pos + file_offset, cols, num_cols, destination, errors);
+          }
           destination.push_back(pos + file_offset);
-          resolve_columns(
-              pos + file_offset, cols, num_cols, destination, errors);
         }
         cols = 0;
         pos = skip_rest_of_line(source, pos);

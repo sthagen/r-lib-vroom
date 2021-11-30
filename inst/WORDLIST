@@ -5,6 +5,7 @@ AppVeyor
 backslashed
 BCP
 benchmarking
+bool
 BOM
 Bugfixes
 bz
@@ -13,12 +14,14 @@ centric
 chriswhong
 cpp
 CMD
+CRAN's
 Codecov
 csv
 datetime
 de
 dbi
 delim
+durations
 Dowle
 dplyr
 envvar
@@ -79,6 +82,7 @@ tsv
 tz
 tzdb
 unicode
+unterminated
 UNK
 xz
 rchk

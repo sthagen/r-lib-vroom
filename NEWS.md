@@ -1,5 +1,36 @@
 # vroom (development version)
 
+# vroom 1.5.7
+
+* Jenny Bryan is now the official maintainer.
+
+* Fix uninitialized bool detected by CRAN's UBSAN check (https://github.com/r-lib/vroom/pull/386)
+
+* Fix buffer overflow when trying to parse an integer field that is over 64 characters long (https://github.com/tidyverse/readr/issues/1326)
+
+* Fix subset indexing when indexes span a file boundary multiple times (#383)
+
+# vroom 1.5.6
+
+* `vroom(col_select=)` now works if `col_names = FALSE` as intended (#381)
+
+* `vroom(n_max=)` now correctly handles cases when reading from a connection and the file does _not_ end with a newline (https://github.com/tidyverse/readr/issues/1321)
+
+* `vroom()` no longer issues a spurious warning when the parsing needs to be restarted due to the presence of embedded newlines (https://github.com/tidyverse/readr/issues/1313)
+* Fix performance issue when materializing subsetted vectors (#378)
+
+* `vroom_format()` now uses the same internal multi-threaded code as `vroom_write()`, improving its performance in most cases (#377)
+
+* `vroom_fwf()` no longer omits the last line if it does _not_ end with a newline (https://github.com/tidyverse/readr/issues/1293)
+
+* Empty files or files with only a header line and no data no longer cause a crash if read with multiple files (https://github.com/tidyverse/readr/issues/1297)
+
+* Files with a header but no contents, or a empty file if `col_names = FALSE` no longer cause a hang when `progress = TRUE` (https://github.com/tidyverse/readr/issues/1297)
+
+* Commented lines with comments at the end of lines no longer hang R (https://github.com/tidyverse/readr/issues/1309)
+
+* Comment lines containing unpaired quotes are no longer treated as unterminated quotations (https://github.com/tidyverse/readr/issues/1307)
+
 * Values with only a `Inf` or `NaN` prefix but additional data afterwards, like
   `Inform` or no longer inappropriately guessed as doubles (https://github.com/tidyverse/readr/issues/1319)
 
@@ -7,7 +38,6 @@
 
 * Fix performance issue when materializing subsetted vectors (#378)
 
-* `vroom_format()` now uses the same internal multi-threaded code as `vroom_write()`, improving its performance in most cases (#377)
 
 # vroom 1.5.5
 

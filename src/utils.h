@@ -43,30 +43,39 @@ is_empty_line(const char* begin, const char* end, const bool skip_empty_rows) {
   return *begin == '\n';
 }
 
-inline bool is_blank_or_comment_line(
+inline std::pair<bool, bool> is_blank_or_comment_line(
     const char* begin,
     const char* end,
     const std::string& comment,
     const bool skip_empty_rows) {
+  bool should_skip = false;
+  bool is_comment = false;
+
   if (!skip_empty_rows && comment.empty()) {
-    return false;
+    return std::pair<bool, bool>(should_skip, is_comment);
   }
 
   if (skip_empty_rows && (*begin == '\n' || *begin == '\r')) {
-    return true;
+    should_skip = true;
+    return std::pair<bool, bool>(should_skip, is_comment);
   }
 
   while (begin < end && (*begin == ' ' || *begin == '\t')) {
     ++begin;
   }
 
-  if ((skip_empty_rows && (*begin == '\n' || *begin == '\r')) ||
-      (!comment.empty() &&
-       strncmp(begin, comment.data(), comment.size()) == 0)) {
-    return true;
+  if (skip_empty_rows && (*begin == '\n' || *begin == '\r')) {
+    should_skip = true;
+    return std::pair<bool, bool>(should_skip, is_comment);
   }
 
-  return false;
+  if (!comment.empty() && strncmp(begin, comment.data(), comment.size()) == 0) {
+    should_skip = true;
+    is_comment = true;
+    return std::pair<bool, bool>(should_skip, is_comment);
+  }
+
+  return std::pair<bool, bool>(should_skip, is_comment);
 }
 
 inline bool is_crlf(const char* buf, size_t pos, size_t end) {
@@ -134,7 +143,8 @@ static std::pair<size_t, newline_type> find_next_newline(
     const std::string& comment,
     const bool skip_empty_rows,
     bool embedded_nl,
-    const char quote) {
+    const char quote,
+    newline_type type = NA) {
 
   if (start >= source.size()) {
     return {source.size() - 1, NA};
@@ -152,15 +162,31 @@ static std::pair<size_t, newline_type> find_next_newline(
 
   const char* end = source.data() + source.size();
 
-  std::array<char, 3> query = {'\r', '\n', '\0'};
+  std::array<char, 3> query;
+  switch (type) {
+  case NA:
+    query = {'\n', '\r', '\0'};
+    break;
+  case CR:
+    query = {'\r', '\0'};
+    break;
+  case CRLF:
+  case LF:
+    query = {'\n', '\0'};
+    break;
+  }
+  bool should_skip;
   while (begin && begin < end) {
     size_t offset = strcspn(begin, query.data());
     // REprintf("%i\n", offset);
     begin += offset;
     break;
-    if (!(begin && begin + 1 < end &&
-          is_blank_or_comment_line(begin + 1, end, comment, skip_empty_rows))) {
-      break;
+    if (!(begin && begin + 1 < end)) {
+      std::tie(should_skip, std::ignore) =
+          is_blank_or_comment_line(begin + 1, end, comment, skip_empty_rows);
+      if (should_skip) {
+        break;
+      }
     }
   }
 
@@ -278,22 +304,28 @@ size_t find_first_line(
   auto begin = skip_bom(source);
   /* Skip skip parameters, comments and blank lines */
 
-  while (bool should_skip =
-             (begin < source.size() - 1 && is_blank_or_comment_line(
-                                               source.data() + begin,
-                                               source.data() + source.size(),
-                                               comment,
-                                               skip_empty_rows)) ||
-             skip > 0) {
+  bool should_skip, is_comment;
+  std::tie(should_skip, is_comment) = is_blank_or_comment_line(
+      source.data() + begin,
+      source.data() + source.size(),
+      comment,
+      skip_empty_rows);
+  while (begin < source.size() - 1 && (should_skip || skip > 0)) {
     std::tie(begin, std::ignore) = find_next_newline(
         source,
         begin,
         "",
         /* skip_empty_rows */ false,
         embedded_nl,
-        quote);
+        is_comment ? '\0' : quote); /* don't deal with quotes in comment lines*/
     ++begin;
     skip = skip > 0 ? skip - 1 : skip;
+
+    std::tie(should_skip, is_comment) = is_blank_or_comment_line(
+        source.data() + begin,
+        source.data() + source.size(),
+        comment,
+        skip_empty_rows);
   }
 
   return begin;

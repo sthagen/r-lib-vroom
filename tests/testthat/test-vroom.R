@@ -820,3 +820,65 @@ test_that("vroom works with CR line endings only", {
     equals = tibble::tibble(a = c(1, 3), b = c(2, 4))
   )
 })
+
+test_that("vroom works with quotes in comments", {
+  test_vroom(I("a,b\n#bar \" xyz\n1,2"), delim = ",", comment = "#",
+    equals = tibble::tibble(a = 1, b = 2)
+  )
+
+  test_vroom(I("#foo \" \na,b\n#bar \" xyz\n1,2"), delim = ",", comment = "#",
+    equals = tibble::tibble(a = 1, b = 2)
+  )
+})
+
+test_that("vroom works with comments at end of lines (https://github.com/tidyverse/readr/issues/1309)", {
+  test_vroom(I("foo,bar#\n1,#\n2#\n#\n3\n"), delim = ",", comment = "#",
+    equals = tibble::tibble(foo = c(1,2,3), bar = c(NA, NA, NA))
+  )
+})
+
+test_that("vroom does not erronously warn for problems when there are embedded newlines and parsing needs to be restarted (https://github.com/tidyverse/readr/issues/1313))", {
+
+  withr::local_seed(1)
+
+  sample_values <- function(n, p_safe) {
+    sample(c("safe", "UNSAFE\n"), n, replace = TRUE, prob = c(p_safe, 1 - p_safe))
+  }
+
+  n <- 300
+
+  df <- tibble::tibble(
+    a = sample_values(n, p_safe = .99),
+    b = sample_values(n, p_safe = .01),
+    c = sample_values(n, p_safe = .01)
+  )
+
+  # write to temp file
+  path <- tempfile(pattern = "quoted_newlines_", fileext = ".csv")
+  withr::defer(unlink(path))
+
+  vroom_write(df, path, delim = ",")
+
+  x <- vroom(path, delim = ",", col_types = list())
+  y <- utils::read.csv(path, stringsAsFactors = FALSE)
+
+  expect_warning(expect_equal(as.data.frame(x), y), NA)
+})
+
+test_that("n_max works with files without a trailing newline for file connections (https://github.com/tidyverse/readr/issues/1321)", {
+
+  f <- tempfile()
+  on.exit(unlink(f))
+
+writeBin(charToRaw("foo,bar
+1,2
+3,4
+5,6"), f)
+
+  x <- vroom(f, n_max = Inf, delim = ",", col_types = list())
+  y <- vroom(f, n_max = 4, delim = ",", col_types = list())
+  z <- vroom(f, n_max = 5, delim = ",", col_types = list())
+  expect_equal(y, x)
+  expect_equal(z, x)
+})
+

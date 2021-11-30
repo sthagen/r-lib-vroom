@@ -1,10 +1,10 @@
 Package: vroom
 Title: Read and Write Rectangular Text Data Quickly
-Version: 1.5.5.9000
+Version: 1.5.7.9000
 Authors@R: 
     c(person(given = "Jim",
              family = "Hester",
-             role = c("aut", "cre"),
+             role = "aut",
              email = "jim.hester@rstudio.com",
              comment = c(ORCID = "0000-0002-2739-7082")),
       person(given = "Hadley",
@@ -12,6 +12,11 @@ Authors@R:
              role = "aut",
              email = "hadley@rstudio.com",
              comment = c(ORCID = "0000-0003-4757-117X")),
+      person(given = "Jennifer",
+             family = "Bryan",
+             role = c("aut", "cre"),
+             email = "jenny@rstudio.com",
+             comment = c(ORCID = "0000-0002-6983-2759")),
       person(given = "https://github.com/mandreyel/",
              role = "cph",
              comment = "mio library"),
@@ -69,6 +74,7 @@ Suggests:
     spelling,
     testthat (>= 2.1.0),
     tidyr,
+    utils,
     waldo,
     xml2
 LinkingTo: 
@@ -84,5 +90,5 @@ Copyright: file COPYRIGHTS
 Encoding: UTF-8
 Language: en-US
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.1.1
+RoxygenNote: 7.1.2
 SystemRequirements: C++11
