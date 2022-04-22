@@ -202,9 +202,27 @@ test_that("vroom_write equals the same thing as vroom_format", {
   expect_equal(readChar(tf, file.info(tf)$size), vroom_format(df))
 })
 
+test_that("vroom_format handles empty data frames", {
+  df <- data.frame()
+  expect_equal(vroom_format(df), "")
+
+  df <- data.frame(a = 1:2, b = 2:3)
+  df <- df[0, ]
+  expect_equal(vroom_format(df), "a\tb\n")
+})
+
+test_that("vroom_write() / vroom_read() roundtrips an empty data frame", {
+  df <- tibble::tibble()
+  t <- tempfile(fileext = ".csv")
+  on.exit(unlink(t))
+
+  vroom_write(df, t)
+  expect_equal(vroom(t, show_col_types = FALSE), df)
+})
+
 test_that("vroom_write(append = TRUE) works with R connections", {
   df <- data.frame(x = 1, y = 2)
-  f <- tempfile(, fileext = ".tsv.gz")
+  f <- tempfile(fileext = ".tsv.gz")
   on.exit(unlink(f))
 
   vroom::vroom_write(df, f)
@@ -216,7 +234,7 @@ test_that("vroom_write(append = TRUE) works with R connections", {
 test_that("vroom_write() works with an empty delimiter", {
   df <- data.frame(x = "foo", y = "bar")
 
-  f <- tempfile(, fileext = ".tsv.gz")
+  f <- tempfile(fileext = ".tsv.gz")
   on.exit(unlink(f))
 
   vroom::vroom_write(df, f, delim = "")
@@ -224,7 +242,7 @@ test_that("vroom_write() works with an empty delimiter", {
 })
 
 test_that("vroom_write_lines() works with empty", {
-  f <- tempfile(, fileext = ".txt")
+  f <- tempfile(fileext = ".txt")
   on.exit(unlink(f))
 
   vroom::vroom_write_lines(character(), f)
@@ -232,7 +250,7 @@ test_that("vroom_write_lines() works with empty", {
 })
 
 test_that("vroom_write_lines() works with normal input", {
-  f <- tempfile(, fileext = ".txt")
+  f <- tempfile(fileext = ".txt")
   on.exit(unlink(f))
 
   vroom::vroom_write_lines(c("foo", "bar"), f)
@@ -240,7 +258,7 @@ test_that("vroom_write_lines() works with normal input", {
 })
 
 test_that("vroom_write_lines() does not escape or quote lines", {
-  f <- tempfile(, fileext = ".txt")
+  f <- tempfile(fileext = ".txt")
   on.exit(unlink(f))
 
   vroom::vroom_write_lines(c('"foo"', "bar"), f)

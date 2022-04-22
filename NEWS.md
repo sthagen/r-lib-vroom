@@ -1,5 +1,15 @@
 # vroom (development version)
 
+* Fixed segfault when `vroom_format()` is given an empty data frame (#425)
+
+* Fixed a segfault that could occur when the final field of the final line is missing and the file also does not end in a newline (#429).
+
+* Fix recursive gc error that could occur during `vroom_write()` when `output_column()` generates an ALTREP vector (#389).
+
+* `vroom_progress()` uses `rlang::is_interactive()` instead of `base::interactive()`.
+
+* `col_factor(levels = NULL)` honors the `na` strings of `vroom()` and its own `include_na` argument, as described in the docs, and now reproduces the behaviour of readr's first edition parser (#396).
+
 # vroom 1.5.7
 
 * Jenny Bryan is now the official maintainer.

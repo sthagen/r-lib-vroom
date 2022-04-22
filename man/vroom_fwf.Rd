@@ -48,9 +48,10 @@ be automatically uncompressed. Files starting with \verb{http://},
 downloaded. Remote gz files can also be automatically downloaded and
 decompressed.
 
-Literal data is most useful for examples and tests. To be recognised as a
-path, it must be wrapped with \code{I()}, be a string containing at least one
-new line, or be a vector containing at least one string with a new line.
+Literal data is most useful for examples and tests. To be recognised as
+literal data, the input must be either wrapped with \code{I()}, be a string
+containing at least one new line, or be a vector containing at least one
+string with a new line.
 
 Using a value of \code{\link[readr:clipboard]{clipboard()}} will read from the system clipboard.}
 
@@ -91,10 +92,12 @@ message showing what \code{readr} guessed they were. To remove this message,
 set \code{show_col_types = FALSE} or set `options(readr.show_col_types = FALSE).
 }}
 
-\item{col_select}{<\code{\link[tidyselect:language]{tidy-select}}> Columns to include
-in the results, either by name or by numeric index. Use \code{\link[=c]{c()}} or \code{\link[=list]{list()}}
-to select with more than one expression and \code{\link[tidyselect:language]{?tidyselect::language}} for full
-details on the selection language.}
+\item{col_select}{Columns to include in the results. You can use the same
+mini-language as \code{dplyr::select()} to refer to the columns by name. Use
+\code{c()} or \code{list()} to use more than one selection expression. Although this
+usage is less common, \code{col_select} also accepts a numeric column index. See
+\code{\link[tidyselect:language]{?tidyselect::language}} for full details on the
+selection language.}
 
 \item{id}{The name of a column in which to store the file path. This is
 useful when reading multiple input files and there is data in the file
@@ -124,7 +127,8 @@ each field before parsing it?}
 
 \item{n_max}{Maximum number of lines to read.}
 
-\item{guess_max}{Maximum number of lines to use for guessing column types.}
+\item{guess_max}{Maximum number of lines to use for guessing column types.
+See \code{vignette("column-types", package = "readr")} for more details.}
 
 \item{altrep}{Control which column types use Altrep representations,
 either a character vector of types, \code{TRUE} or \code{FALSE}. See
@@ -148,16 +152,17 @@ progress bar can be disabled by setting option \code{readr.show_progress} to
 (the default) only show the column types if they are not explicitly supplied
 by the \code{col_types} argument.}
 
-\item{.name_repair}{Treatment of problematic column names:
+\item{.name_repair}{Handling of column names. The default behaviour is to
+ensure column names are \code{"unique"}. Various repair strategies are
+supported:
 \itemize{
-\item \code{"minimal"}: No name repair or checks, beyond basic existence of names
-\item \code{"unique"}: Make sure names are unique and not empty
-\item \code{"check_unique"}: (default value), no name repair, but check they are
-\code{unique}
-\item \code{"universal"}: Make the names \code{unique} and syntactic
-\item a function: apply custom name repair (e.g., \code{.name_repair = make.names}
-for names in the style of base R)
-\item A purrr-style anonymous function, see \code{\link[rlang:as_function]{rlang::as_function()}}
+\item \code{"minimal"}: No name repair or checks, beyond basic existence of names.
+\item \code{"unique"} (default value): Make sure names are unique and not empty.
+\item \code{"check_unique"}: no name repair, but check they are \code{unique}.
+\item \code{"universal"}: Make the names \code{unique} and syntactic.
+\item A function: apply custom name repair (e.g., \code{name_repair = make.names}
+for names in the style of base R).
+\item A purrr-style anonymous function, see \code{\link[rlang:as_function]{rlang::as_function()}}.
 }
 
 This argument is passed on as \code{repair} to \code{\link[vctrs:vec_as_names]{vctrs::vec_as_names()}}.

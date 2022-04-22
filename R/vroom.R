@@ -18,13 +18,26 @@ NULL
 #' @param id Either a string or 'NULL'. If a string, the output will contain a
 #'   variable with that name with the filename(s) as the value. If 'NULL', the
 #'   default, no variable will be created.
-#' @param col_select One or more selection expressions, like in
-#'   `dplyr::select()`. Use `c()` or `list()` to use more than one expression.
-#'   See `?dplyr::select` for details on available selection options.
-#' @param .name_repair Handling of column names. By default, vroom ensures
-#'   column names are not empty and unique. See `.name_repair` as documented in
-#'   [tibble::tibble()] for additional options including supplying user defined
-#'   name repair functions.
+#' @param col_select Columns to include in the results. You can use the same
+#'   mini-language as `dplyr::select()` to refer to the columns by name. Use
+#'   `c()` or `list()` to use more than one selection expression. Although this
+#'   usage is less common, `col_select` also accepts a numeric column index. See
+#'   [`?tidyselect::language`][tidyselect::language] for full details on the
+#'   selection language.
+#' @param .name_repair Handling of column names. The default behaviour is to
+#'   ensure column names are `"unique"`. Various repair strategies are
+#'   supported:
+#'   * `"minimal"`: No name repair or checks, beyond basic existence of names.
+#'   * `"unique"` (default value): Make sure names are unique and not empty.
+#'   * `"check_unique"`: no name repair, but check they are `unique`.
+#'   * `"universal"`: Make the names `unique` and syntactic.
+#'   * A function: apply custom name repair (e.g., `name_repair = make.names`
+#'     for names in the style of base R).
+#'   * A purrr-style anonymous function, see [rlang::as_function()].
+#'
+#'   This argument is passed on as `repair` to [vctrs::vec_as_names()].
+#'   See there for more details on these terms and the strategies used
+#'   to enforce them.
 #' @param altrep Control which column types use Altrep representations,
 #'   either a character vector of types, `TRUE` or `FALSE`. See
 #'   [vroom_altrep()] for for full details.
@@ -221,23 +234,27 @@ make_names <- function(x, len) {
   nms
 }
 
-#' Determine if progress bars should be shown
+#' Determine whether progress bars should be shown
 #'
-#' Progress bars are shown _unless_ one of the following is `TRUE`
-#' - The bar is explicitly disabled by setting `Sys.getenv("VROOM_SHOW_PROGRESS"="false")`
-#' - The code is run in a non-interactive session (`interactive()` is `FALSE`).
-#' - The code is run in an RStudio notebook chunk.
-#' - The code is run by knitr / rmarkdown.
-#' - The code is run by testthat (the `TESTTHAT` envvar is `true`).
+#' By default, vroom shows progress bars. However, progress reporting is
+#' suppressed if any of the following conditions hold:
+#' - The bar is explicitly disabled by setting the environment variable
+#'   `VROOM_SHOW_PROGRESS` to `"false"`.
+#' - The code is run in a non-interactive session, as determined by
+#'   [rlang::is_interactive()].
+#' - The code is run in an RStudio notebook chunk, as determined by
+#'   `getOption("rstudio.notebook.executing")`.
 #' @export
 #' @examples
 #' vroom_progress()
 vroom_progress <- function() {
   env_to_logical("VROOM_SHOW_PROGRESS", TRUE) &&
-    interactive() &&
-    !isTRUE(getOption("knitr.in.progress")) &&
-    !isTRUE(getOption("rstudio.notebook.executing")) &&
-    !(is_loaded("testthat") && testthat::is_testing())
+    rlang::is_interactive() &&
+    # some analysis re: rstudio.notebook.executing can be found in:
+    # https://github.com/r-lib/rlang/issues/1031
+    # TL;DR it's not consulted by is_interactive(), but probably should be
+    # consulted for progress reporting specifically
+    !isTRUE(getOption("rstudio.notebook.executing"))
 }
 
 #' @importFrom crayon blue cyan green bold reset col_nchar

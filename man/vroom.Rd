@@ -84,9 +84,12 @@ message showing what \code{readr} guessed they were. To remove this message,
 set \code{show_col_types = FALSE} or set `options(readr.show_col_types = FALSE).
 }}
 
-\item{col_select}{One or more selection expressions, like in
-\code{dplyr::select()}. Use \code{c()} or \code{list()} to use more than one expression.
-See \code{?dplyr::select} for details on available selection options.}
+\item{col_select}{Columns to include in the results. You can use the same
+mini-language as \code{dplyr::select()} to refer to the columns by name. Use
+\code{c()} or \code{list()} to use more than one selection expression. Although this
+usage is less common, \code{col_select} also accepts a numeric column index. See
+\code{\link[tidyselect:language]{?tidyselect::language}} for full details on the
+selection language.}
 
 \item{id}{Either a string or 'NULL'. If a string, the output will contain a
 variable with that name with the filename(s) as the value. If 'NULL', the
@@ -127,7 +130,8 @@ The default locale is US-centric (like R), but you can use
 the default time zone, encoding, decimal mark, big mark, and day/month
 names.}
 
-\item{guess_max}{Maximum number of lines to use for guessing column types.}
+\item{guess_max}{Maximum number of lines to use for guessing column types.
+See \code{vignette("column-types", package = "readr")} for more details.}
 
 \item{altrep}{Control which column types use Altrep representations,
 either a character vector of types, \code{TRUE} or \code{FALSE}. See
@@ -149,10 +153,22 @@ column specifications are always show, if \code{FALSE} they are never shown. If
 \code{NULL} (the default) they are shown only if an explicit specification is not
 given to \code{col_types}.}
 
-\item{.name_repair}{Handling of column names. By default, vroom ensures
-column names are not empty and unique. See \code{.name_repair} as documented in
-\code{\link[tibble:tibble]{tibble::tibble()}} for additional options including supplying user defined
-name repair functions.}
+\item{.name_repair}{Handling of column names. The default behaviour is to
+ensure column names are \code{"unique"}. Various repair strategies are
+supported:
+\itemize{
+\item \code{"minimal"}: No name repair or checks, beyond basic existence of names.
+\item \code{"unique"} (default value): Make sure names are unique and not empty.
+\item \code{"check_unique"}: no name repair, but check they are \code{unique}.
+\item \code{"universal"}: Make the names \code{unique} and syntactic.
+\item A function: apply custom name repair (e.g., \code{name_repair = make.names}
+for names in the style of base R).
+\item A purrr-style anonymous function, see \code{\link[rlang:as_function]{rlang::as_function()}}.
+}
+
+This argument is passed on as \code{repair} to \code{\link[vctrs:vec_as_names]{vctrs::vec_as_names()}}.
+See there for more details on these terms and the strategies used
+to enforce them.}
 }
 \description{
 Read a delimited file into a tibble
