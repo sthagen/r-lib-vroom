@@ -1,6 +1,8 @@
 # vroom (development version)
 
-* `vroom(col_select=)` now handles column selection by numeric position when `id` column is provided (#455)
+# vroom 1.6.0
+
+* `vroom(col_select=)` now handles column selection by numeric position when `id` column is provided (#455).
 
 * `vroom(id = "path", col_select = a:c)` is treated like `vroom(id = "path", col_select = c(path, a:c))`. If an `id` column is provided, it is automatically included in the output (#416).
 
@@ -12,9 +14,7 @@
 
 * `vroom()` reads more reliably from filepaths containing non-ascii characters, in a non-UTF-8 locale (#394, #438).
 
-* `vroom_format()` and `vroom_write()` only quote values that contain a
-  delimiter, quote, or newline. Specifically values that are equal to the `na`
-  string (or that start with it) are no longer quoted (#426).
+* `vroom_format()` and `vroom_write()` only quote values that contain a delimiter, quote, or newline. Specifically values that are equal to the `na` string (or that start with it) are no longer quoted (#426).
   
 * Fixed segfault when reading in multiple files and the first file has only a header row of column names, but subsequent files have at least one row (#430).
 
@@ -32,7 +32,7 @@
 
 * Jenny Bryan is now the official maintainer.
 
-* Fix uninitialized bool detected by CRAN's UBSAN check (https://github.com/r-lib/vroom/pull/386)
+* Fix uninitialized bool detected by CRAN's UBSAN check (https://github.com/tidyverse/vroom/pull/386)
 
 * Fix buffer overflow when trying to parse an integer field that is over 64 characters long (https://github.com/tidyverse/readr/issues/1326)
 

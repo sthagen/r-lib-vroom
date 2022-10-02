@@ -41,3 +41,6 @@
 ^img$
 ^investigations$
 ^debug$
+^\.vscode$
+^rchk.*$
+^CRAN-SUBMISSION$
