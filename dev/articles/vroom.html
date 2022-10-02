@@ -36,7 +36,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">vroom</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="In-development version">1.5.7.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="In-development version">1.6.0.9000</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -74,7 +74,7 @@
 
       <ul class="navbar-nav">
 <li class="nav-item">
-  <a class="external-link nav-link" href="https://github.com/r-lib/vroom/" aria-label="github">
+  <a class="external-link nav-link" href="https://github.com/tidyverse/vroom/" aria-label="github">
     <span class="fab fa fab fa-github fa-lg"></span>
      
   </a>
@@ -94,7 +94,7 @@
       <img src="../logo.png" class="logo" alt=""><h1>Get started with vroom</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/r-lib/vroom/blob/HEAD/vignettes/vroom.Rmd" class="external-link"><code>vignettes/vroom.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/tidyverse/vroom/blob/HEAD/vignettes/vroom.Rmd" class="external-link"><code>vignettes/vroom.Rmd</code></a></small>
       <div class="d-none name"><code>vroom.Rmd</code></div>
     </div>
 
@@ -257,7 +257,7 @@
 </h2>
 <p>vroom can read files directly from the internet as well by passing the URL of the file to vroom.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">file</span> <span class="op">&lt;-</span> <span class="st">"https://raw.githubusercontent.com/r-lib/vroom/main/inst/extdata/mtcars.csv"</span></span>
+<code class="sourceCode R"><span><span class="va">file</span> <span class="op">&lt;-</span> <span class="st">"https://raw.githubusercontent.com/tidyverse/vroom/main/inst/extdata/mtcars.csv"</span></span>
 <span><span class="fu"><a href="../reference/vroom.html">vroom</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="font-weight: bold;">Rows: </span><span style="color: #0000BB;">32</span> <span style="font-weight: bold;">Columns: </span><span style="color: #0000BB;">12</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">──</span> <span style="font-weight: bold;">Column specification</span> <span style="color: #00BBBB;">──────────────────────────────────────────────────</span></span></span>
@@ -276,7 +276,7 @@
 <span><span class="co">#&gt; <span style="color: #949494;"># … with 29 more rows</span></span></span></code></pre></div>
 <p>It can even read gzipped files from the internet (although not the other compressed formats).</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">file</span> <span class="op">&lt;-</span> <span class="st">"https://raw.githubusercontent.com/r-lib/vroom/main/inst/extdata/mtcars.csv.gz"</span></span>
+<code class="sourceCode R"><span><span class="va">file</span> <span class="op">&lt;-</span> <span class="st">"https://raw.githubusercontent.com/tidyverse/vroom/main/inst/extdata/mtcars.csv.gz"</span></span>
 <span><span class="fu"><a href="../reference/vroom.html">vroom</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="font-weight: bold;">Rows: </span><span style="color: #0000BB;">32</span> <span style="font-weight: bold;">Columns: </span><span style="color: #0000BB;">12</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">──</span> <span style="font-weight: bold;">Column specification</span> <span style="color: #00BBBB;">──────────────────────────────────────────────────</span></span></span>
@@ -590,7 +590,7 @@
 <div class="section level2">
 <h2 id="name-repair">Name repair<a class="anchor" aria-label="anchor" href="#name-repair"></a>
 </h2>
-<p>Often the names of columns in the original dataset are not ideal to work with. <code><a href="../reference/vroom.html">vroom()</a></code> uses the same <code>.name_repair</code> argument as tibble, so you can use one of the default name repair strategies or provide a custom function. A great approach is to use the <a href="http://sfirke.github.io/janitor/reference/make_clean_names.html" class="external-link"><code>janitor::make_clean_names()</code></a> function as the input. This will automatically clean the names to use whatever case you specify, here I am setting it to use <code>ALLCAPS</code> names.</p>
+<p>Often the names of columns in the original dataset are not ideal to work with. <code><a href="../reference/vroom.html">vroom()</a></code> uses the same <code>.name_repair</code> argument as tibble, so you can use one of the default name repair strategies or provide a custom function. A great approach is to use the <a href="https://sfirke.github.io/janitor/reference/make_clean_names.html" class="external-link"><code>janitor::make_clean_names()</code></a> function as the input. This will automatically clean the names to use whatever case you specify, here I am setting it to use <code>ALLCAPS</code> names.</p>
 <div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/vroom.html">vroom</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="../reference/vroom_example.html">vroom_example</a></span><span class="op">(</span><span class="st">"mtcars.csv"</span><span class="op">)</span>,</span>
